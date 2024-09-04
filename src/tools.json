@@ -1,0 +1,187 @@
+[
+	{
+		"type": "function",
+		"function": {
+			"name": "read_file",
+			"description": "Read file contents",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"path",
+					"start_line_number",
+					"linenumber_count"
+				],
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Path of file you want to read"
+					},
+					"start_line_number": {
+						"type": "integer",
+						"description": "Offset from which you want to read the file. Default is 0"
+					},
+					"linenumber_count": {
+						"type": "integer",
+						"description": "Length of the content you want to read. Default is full file"
+					}
+				}
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "write_file",
+			"description": "Write file contents",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"path",
+					"content"
+				],
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Path of file you want to write"
+					},
+					"content": {
+						"type": "string",
+						"description": "Content you want to write in file"
+					},
+					"linenumber": {
+						"type": "integer",
+						"description": "Linenumber from which you want to write to the file."
+					}
+				}
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "add_new_todo",
+			"description": "Add new todo item for your self",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"content"
+				],
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Name of the todo item"
+					},
+					"content": {
+						"type": "string",
+						"description": "Content of the todo item"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "complete_todo",
+			"description": "Complete todo item",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Name of the todo item you want to complete"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "add_memory",
+			"description": "Add which is always available for you however you can only keep 20 memories at a time",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"content"
+				],
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Name of the memory"
+					},
+					"content": {
+						"type": "string",
+						"description": "Content you want to remember"
+					},
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "forget_memory",
+			"description": "You can forget memories with this tool to free up space",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Name of the memory you want to forget"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "list_folder_content",
+			"description": "List folder content",
+			"parameters": {
+				"type": "object",
+				"required": ["path"],
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Path of the folder you want to list"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "find_in_file",
+			"description": "Find content in file",
+			"parameters": {
+				"type": "object",
+				"required": ["path", "pattern"],
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Path of the file in which you want to search"
+					},
+					"pattern": {
+						"type": "string",
+						"description": "Pattern you want to search"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
+	}
+]

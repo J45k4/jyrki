@@ -7,4 +7,8 @@ edition = "2021"
 log = "0.4"
 simple_logger = "5"
 tokio = { version = "1", features = ["full"] }
+reqwest = "0.12"
+serde = "1"
+serde_json = "1"
+anyhow = "1"
 wgui = { git = "https://github.com/J45k4/wgui.git", rev = "c851abb0b2123e1adc6e5fa31fb78099184dad73" }
