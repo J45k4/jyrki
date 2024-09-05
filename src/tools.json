@@ -37,7 +37,8 @@
 				"type": "object",
 				"required": [
 					"path",
-					"content"
+					"content",
+					"linenumber"
 				],
 				"properties": {
 					"path": {
@@ -118,7 +119,7 @@
 					"content": {
 						"type": "string",
 						"description": "Content you want to remember"
-					},
+					}
 				},
 				"additionalProperties": false
 			}

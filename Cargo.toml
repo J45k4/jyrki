@@ -11,4 +11,5 @@ reqwest = "0.12"
 serde = "1"
 serde_json = "1"
 anyhow = "1"
+chrono = "0.4"
 wgui = { git = "https://github.com/J45k4/wgui.git", rev = "c851abb0b2123e1adc6e5fa31fb78099184dad73" }
