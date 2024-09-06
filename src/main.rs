@@ -129,26 +129,6 @@ fn project_view(project: &Project) -> Item {
 				]),
 			]).spacing(5),
 			vstack(project.history.items.iter().map(|item| {
-				// match item {
-				// 	ConversationItem::ToolUses(tools) => hstack(tools.iter().map(|tool| {
-				// 		text(&format!("{:?}", tool))
-				// 			.border("1px solid black")
-				// 			.padding(5)
-				// 	}))
-				// 	.spacing(10),
-				// 	ConversationItem::UserMessage(msgs) => {
-				// 		vstack([text("User"), text(&msgs.join(" "))])
-				// 			.spacing(10)
-				// 			.padding(5)
-				// 			.border("1px solid black")
-				// 	}
-				// 	ConversationItem::AssistantMessage(msgs) => {
-				// 		vstack([text("Assistant"), text(&msgs)])
-				// 			.spacing(10)
-				// 			.padding(5)
-				// 			.border("1px solid black")
-				// 	}
-				// }
 				match &item.content {
 					HistoryItemContent::UserMessage { content } => {
 						vstack([text("User"), text(&content)])
@@ -314,7 +294,7 @@ impl App {
 					self.state.current_msg.clear();
 					let messages = project.history.get_context();
 					let req = GenRequest {
-						model: GPT_4O_MINI.to_string(),
+						model: Model::GPT4OMini,
 						messages,
 						tools: self.tools.clone(),
 					};
@@ -335,7 +315,7 @@ impl App {
 		self.render_ui().await;
 	}
 
-	fn handle_result(&mut self, result: GenResult) {
+	async fn handle_result(&mut self, result: GenResult) {
 		match result {
 			GenResult::Response(res) => {
 				log::info!("Response: {:?}", res);
@@ -349,12 +329,22 @@ impl App {
 
 				for t in res.tools {
 					log::info!("Tool: {:?}", t);
+					t.
 					match t.name.as_str() {
 						"write_file" => {
 							let w = serde_json::from_str(&t.args).unwrap();
 							let tool = Tool::WriteFile(w);
 							project.history.add_tool_call(t.id.clone(), tool.clone());
-							self.executor.execute(t.id, tool);
+							match self.executor.execute(t.id, tool).await {
+								Ok(res) => {
+									log::info!("Result: {:?}", res);
+									project.history.add_assistant_msg(res);
+								}
+								Err(e) => {
+									log::info!("Error: {:?}", e);
+									project.history.add_assistant_msg(format!("Error: {:?}", e));
+								}
+							}
 						}
 						_ => {}
 					}
@@ -385,7 +375,7 @@ impl App {
 					match result {
 						Some(res) => {
 							log::info!("Result: {:?}", res);
-							self.handle_result(res);
+							self.handle_result(res).await;
 						},
 						None => {
 							log::info!("No result");

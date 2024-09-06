@@ -2,7 +2,7 @@ use chrono::DateTime;
 use chrono::Utc;
 
 use crate::tool::Tool;
-use crate::Message;
+use crate::LLMMessage;
 
 
 #[derive(Debug)]
@@ -36,7 +36,11 @@ pub enum HistoryItemContent {
 	ToolCall {
 		id: String,
 		tool: Tool
-	}
+	},
+	ToolResponse {
+		id: String,
+		response: String
+	},
 }
 
 #[derive(Debug)]
@@ -85,27 +89,37 @@ impl History {
 		});
 	}
 
+	pub fn add_tool_response(&mut self, id: String, response: String) {
+		self.items.push(HistoryItem {
+			timestamp: Utc::now(),
+			content: HistoryItemContent::ToolResponse {
+				id,
+				response,
+			},
+		});
+	}
+
 	// pub fn add_tool_response(&mut self, response: ToolResponse) {
 	// 	self.items.push(HistoryItem::ToolResponse(response));
 	// }
 
-	pub fn get_context(&self) -> Vec<Message> {
+	pub fn get_context(&self) -> Vec<LLMMessage> {
 		let mut context = Vec::new();
 		for item in &self.items {
 			match &item.content {
 				HistoryItemContent::UserMessage { content } => {
-					context.push(Message::User {
+					context.push(LLMMessage::User {
 						content: content.clone(),
 					});
 				},
 				HistoryItemContent::AssistantMessage { content } => {
-					context.push(Message::Assistant {
+					context.push(LLMMessage::Assistant {
 						content: content.clone(),
 					});
 				},
 				HistoryItemContent::ToolCall { id, tool } => {
 					let content = serde_json::to_string(&tool).unwrap();
-					context.push(Message::Tool {
+					context.push(LLMMessage::Tool {
 						tool_call_id: id.clone(),
 						content
 					});

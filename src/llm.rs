@@ -1,14 +1,22 @@
 use serde_json::Value;
 use tokio::sync::mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 
-use crate::openai;
+use crate::openai::{self, Function, ToolCall};
 
 pub const GPT_4O: &str = "gpt-4o";
 pub const GPT_4O_MINI: &str = "gpt-4o-mini";
 
 #[derive(Debug, serde::Serialize)]
+pub enum Model {
+	#[serde(rename = "gpt-4o")]
+	GPT4O,
+	#[serde(rename = "gpt-4o-mini")]
+	GPT4OMini,
+}
+
+#[derive(Debug, serde::Serialize)]
 #[serde(tag = "role")]
-pub enum Message {
+pub enum LLMMessage {
 	#[serde(rename = "system")]
     System {
         content: String,
@@ -20,6 +28,7 @@ pub enum Message {
 	#[serde(rename = "assistant")]
     Assistant {
         content: String,
+		tool_calls: Vec<ToolCall>,
     },
 	#[serde(rename = "tool")]
     Tool {
@@ -30,9 +39,9 @@ pub enum Message {
 
 #[derive(Debug, serde::Serialize)]
 pub struct GenRequest {
-    pub model: String,
-    pub messages: Vec<Message>,
-    pub tools: Value
+    pub model: Model,
+    pub messages: Vec<LLMMessage>,
+    pub tools: Vec<String>
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -48,7 +57,7 @@ pub struct SuccessfullGenResponse {
 	pub prompt_tokens: u32,
 	pub completion_tokens: u32,
 	pub total_tokens: u32,
-    pub tools: Vec<ToolUse>,
+    pub tools: Vec<ToolCall>,
 }
 
 #[derive(Debug)]
@@ -78,10 +87,9 @@ impl LLMClient {
         let client = self.client.clone();
         let tx = self.tx.clone();
         tokio::spawn(async move {
-            let res = match req.model.as_str() {
-                GPT_4O | GPT_4O_MINI => openai::gen(req, client).await,
-                _ => panic!("Invalid model {}", req.model),
-            };
+			let res = match req.model {
+				Model::GPT4O | Model::GPT4OMini => openai::gen(req, client).await,
+			};
 
             match res {
                 Ok(res) => tx.send(GenResult::Response(res)).unwrap(),
