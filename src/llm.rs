@@ -1,63 +1,96 @@
 use serde_json::Value;
-use tokio::sync::mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
-
-use crate::openai::{self, Function, ToolCall};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::UnboundedSender;
+use crate::openai;
+use crate::tool::Tool;
 
 pub const GPT_4O: &str = "gpt-4o";
 pub const GPT_4O_MINI: &str = "gpt-4o-mini";
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone)]
+pub struct ToolCall {
+	pub id: String,
+	pub tool: Tool
+}
+
+#[derive(Debug, Clone)]
+pub struct AssistantMsg {
+	pub content: String,
+	pub tool_calls: Vec<ToolCall>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ToolResponse {
+	pub id: String,
+	pub content: String
+}
+
+const GPT_40_INPUT_COST: f32 = 2.5 / 1_000_000.0;
+const GPT_40_OUTPUT_COST: f32 = 10.0 / 1_000_000.0;
+const GPT_40_MINI_INPUT_COST: f32 = 0.150 / 1_000_000.0;
+const GPT_40_MINI_OUTPUT_COST: f32 = 0.600 / 1_000_000.0;
+
+#[derive(Debug)]
 pub enum Model {
-	#[serde(rename = "gpt-4o")]
 	GPT4O,
-	#[serde(rename = "gpt-4o-mini")]
 	GPT4OMini,
 }
 
-#[derive(Debug, serde::Serialize)]
-#[serde(tag = "role")]
-pub enum LLMMessage {
-	#[serde(rename = "system")]
-    System {
-        content: String,
-    },
-	#[serde(rename = "user")]
-    User {
-        content: String,
-    },
-	#[serde(rename = "assistant")]
-    Assistant {
-        content: String,
-		tool_calls: Vec<ToolCall>,
-    },
-	#[serde(rename = "tool")]
-    Tool {
-        tool_call_id: String,
-        content: String,
-    },
+impl Model {
+	pub fn input_cost(&self, token_count: u32) -> f32 {
+		match self {
+			Model::GPT4O => token_count as f32 * GPT_40_INPUT_COST,
+			Model::GPT4OMini => token_count as f32 * GPT_40_MINI_INPUT_COST,
+		}
+	}
+
+	pub fn output_cost(&self, token_count: u32) -> f32 {
+		match self {
+			Model::GPT4O => token_count as f32 * GPT_40_OUTPUT_COST,
+			Model::GPT4OMini => token_count as f32 * GPT_40_MINI_OUTPUT_COST,
+		}
+	}
 }
 
-#[derive(Debug, serde::Serialize)]
+impl Model {
+	pub fn to_str(&self) -> &str {
+		match self {
+			Model::GPT4O => GPT_4O,
+			Model::GPT4OMini => GPT_4O_MINI,
+		}
+	}
+}
+
+#[derive(Debug, Clone)]
+pub enum LLMMessage {
+    System(String),
+    User(String),
+    Assistant(AssistantMsg),
+    ToolResponse(ToolResponse),
+}
+
+#[derive(Debug)]
 pub struct GenRequest {
     pub model: Model,
     pub messages: Vec<LLMMessage>,
-    pub tools: Vec<String>
+    pub tools: Value
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug)]
 pub struct ToolUse {
 	pub id: String,
     pub name: String,
     pub args: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug)]
 pub struct SuccessfullGenResponse {
-    pub content: String,
 	pub prompt_tokens: u32,
 	pub completion_tokens: u32,
 	pub total_tokens: u32,
-    pub tools: Vec<ToolCall>,
+	pub promt_cost: f32,
+	pub completion_cost: f32,
+    pub msg: AssistantMsg
 }
 
 #[derive(Debug)]

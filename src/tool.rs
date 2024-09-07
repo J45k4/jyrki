@@ -27,6 +27,28 @@ pub struct ReadFile {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ListFolderContents {
+	pub path: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct CreateTodoItem {
+	pub name: String,
+	pub text: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct CompleteTodoItem {
+	pub name: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct FindText {
+	pub text: String,
+	pub path: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "name", content = "arguments")] 
 pub enum Tool {
 	#[serde(rename = "write_file")]
@@ -34,15 +56,36 @@ pub enum Tool {
 	#[serde(rename = "read_file")]
 	ReadFile(ReadFile),
 	#[serde(rename = "list_folder_contents")]
-	ListFolderContents { path: String },
+	ListFolderContents(ListFolderContents),
 	#[serde(rename = "create_folder")]
-	CreateTodoItem { text: String },
+	CreateTodoItem(CreateTodoItem),
 	#[serde(rename = "delete_folder")]
-	CompleteTodoItem,
+	CompleteTodoItem(CompleteTodoItem),
 	#[serde(rename = "find_text")]
-	FindText { text: String, path: String },
+	FindText(FindText),
 }
 
+impl Tool {
+    pub fn parse(name: &str, args: &str) -> anyhow::Result<Tool> {
+        println!("Parsing tool: {} with args: {}", name, args);
+
+        // First, parse the args from a JSON string into a serde_json::Value
+        let args_value: serde_json::Value = serde_json::from_str(args)?;
+
+        // Now, match the tool name and deserialize the args_value into the appropriate type
+        let tool = match name {
+            "write_file" => Tool::WriteFile(serde_json::from_value(args_value)?),
+            "read_file" => Tool::ReadFile(serde_json::from_value(args_value)?),
+            "list_folder_contents" => Tool::ListFolderContents(serde_json::from_value(args_value)?),
+            "create_folder" => Tool::CreateTodoItem(serde_json::from_value(args_value)?),
+            "delete_folder" => Tool::CompleteTodoItem(serde_json::from_value(args_value)?),
+            "find_text" => Tool::FindText(serde_json::from_value(args_value)?),
+            _ => return Err(anyhow::anyhow!("Unknown tool name: {}", name)),
+        };
+
+        Ok(tool)
+    }
+}
 pub struct ToolExecutor {
 	forbidden_files: Vec<String>,
 	base_path: String,
@@ -56,7 +99,7 @@ impl ToolExecutor {
 		}
 	}
 
-	pub async fn execute(&self, id: String, tool: Tool) -> anyhow::Result<String> {
+	pub async fn execute(&self, tool: Tool) -> anyhow::Result<String> {
 		let res = match tool {
 			Tool::WriteFile(w) => {
 				let path = Path::new(&self.base_path).join(&w.path);
@@ -103,8 +146,8 @@ impl ToolExecutor {
 
                 selected_lines.join("\n")
 			},
-			Tool::ListFolderContents { path } => {
-				let path = Path::new(&self.base_path).join(&path);
+			Tool::ListFolderContents(args) => {
+				let path = Path::new(&self.base_path).join(&args.path);
 
 				if !path.exists() {
 					return Ok("Path does not exist".to_string());
@@ -118,13 +161,13 @@ impl ToolExecutor {
 				}
                 contents.join("\n")
 			},
-			Tool::CreateTodoItem { text } => {
+			Tool::CreateTodoItem(args) => {
 				todo!()
 			},
-			Tool::CompleteTodoItem => {
+			Tool::CompleteTodoItem(args) => {
 				todo!()
 			},
-			Tool::FindText { text, path } => {
+			Tool::FindText(args) => {
 				todo!()
 			},
 		};
