@@ -114,6 +114,10 @@ impl Function {
 				name: "find_text".to_string(),
 				arguments: serde_json::to_string(f).unwrap(),
 			},
+			tool::Tool::RemoveFile(r) => Function {
+				name: "remove_file".to_string(),
+				arguments: serde_json::to_string(r).unwrap(),
+			},
 		}
 	}
 }

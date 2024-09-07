@@ -50,6 +50,7 @@ impl App {
 					done: true,
 				},
 			],
+			current_msg: "".to_string(),
 			history: History::new(),
 			// items: vec![
 			//     ConversationItem::AssistantMessage(vec!["Hello".to_string()]),

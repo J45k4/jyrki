@@ -13,4 +13,4 @@ serde_json = "1"
 anyhow = "1"
 chrono = "0.4"
 open = "5"
-wgui = { git = "https://github.com/J45k4/wgui.git", rev = "26bbe40851eeddfdac3fd63c7212c4c7ac543507" }
+wgui = { git = "https://github.com/J45k4/wgui.git", rev = "1bc64b582668325bb91b89d89abca7c311888483" }

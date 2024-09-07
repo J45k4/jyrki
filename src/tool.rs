@@ -27,6 +27,11 @@ pub struct ReadFile {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct RemoveFile {
+	pub path: String
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ListFolderContents {
 	pub path: String
 }
@@ -55,6 +60,8 @@ pub enum Tool {
 	WriteFile(WriteFile),
 	#[serde(rename = "read_file")]
 	ReadFile(ReadFile),
+	#[serde(rename = "delete_file")]
+	RemoveFile(RemoveFile),
 	#[serde(rename = "list_folder_contents")]
 	ListFolderContents(ListFolderContents),
 	#[serde(rename = "create_folder")]
@@ -80,7 +87,8 @@ impl Tool {
             "create_folder" => Tool::CreateTodoItem(serde_json::from_value(args_value)?),
             "delete_folder" => Tool::CompleteTodoItem(serde_json::from_value(args_value)?),
             "find_text" => Tool::FindText(serde_json::from_value(args_value)?),
-            _ => return Err(anyhow::anyhow!("Unknown tool name: {}", name)),
+            "remove_file" => Tool::RemoveFile(serde_json::from_value(args_value)?),
+			_ => return Err(anyhow::anyhow!("Unknown tool name: {}", name)),
         };
 
         Ok(tool)
@@ -146,6 +154,14 @@ impl ToolExecutor {
 
                 selected_lines.join("\n")
 			},
+			Tool::RemoveFile(r) => {
+				let path = Path::new(&self.base_path).join(&r.path);
+				if !path.exists() {
+					return Ok("File does not exist".to_string());
+				}
+				tokio::fs::remove_file(&path).await?;
+				"File removed".to_string()
+			}
 			Tool::ListFolderContents(args) => {
 				let path = Path::new(&self.base_path).join(&args.path);
 

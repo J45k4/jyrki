@@ -60,6 +60,25 @@
 	{
 		"type": "function",
 		"function": {
+			"name": "remove_file",
+			"description": "Remove file",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"path"
+				],
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "Path of file you want to delete"
+					}
+				}
+			}
+		}
+	},
+	{
+		"type": "function",
+		"function": {
 			"name": "add_new_todo",
 			"description": "Add new todo item for your self",
 			"parameters": {

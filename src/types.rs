@@ -10,6 +10,7 @@ pub struct Project {
 	// items: Vec<ConversationItem>,
 	pub history: History,
 	pub instructions: String,
+	pub current_msg: String,
 }
 
 #[derive(Debug)]

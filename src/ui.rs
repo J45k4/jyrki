@@ -58,16 +58,16 @@ fn todo_list_view(todo_items: &Vec<TodoItem>) -> Item {
 	vstack(todo_items.iter().map(todo_item_view)).spacing(10)
 }
 
-fn send_message_view() -> Item {
+fn send_message_view(msg: &str) -> Item {
 	hstack([
-		text_input().placeholder("Message").grow(1).id(MESSAGE_INPUT),
+		text_input().placeholder("Message").grow(1).id(MESSAGE_INPUT).svalue(msg),
 		button("Send").id(SEND_MESSAGE_BUTTON),
 	])
 	.spacing(5)
 	.height(35)
 }
 
-fn project_view(project: &Project) -> Item {
+fn project_view(project: &Project, state: &State) -> Item {
 	hstack([
 		vstack([
 			hstack([
@@ -86,34 +86,35 @@ fn project_view(project: &Project) -> Item {
 						LLMMessage::User(content) => {
 							vstack([text("User"), text(&content)])
 								.spacing(10)
-								.padding(5)
-								.border("1px solid black")
+								
 						}
 						LLMMessage::System(content) => {
 							vstack([text("System"), text(&content)])
 								.spacing(10)
-								.padding(5)
-								.border("1px solid black")
 						},
 						LLMMessage::Assistant(msg) => {
-							vstack([
-								text("Assistant"),
-								text(&msg.content),
-								hstack(msg.tool_calls.iter().map(|tool_call| {
+							hstack([
+								vstack([
+									text("Assistant"),
+									text(&msg.content),
+								]),
+								vstack(msg.tool_calls.iter().map(|tool_call| {
 									vstack([
 										text(&tool_call.id),
 										text(&format!("{:?}", tool_call.tool)),
 									])
 									.spacing(10)
 								})),
-							]).spacing(10).border("1px solid black")
+							]).spacing(10)
 						},
 						_ => text("Unknown message type"),
 					}
 				])
+				.padding(5)
+				.border("1px solid black")
 			}))
 			.spacing(15),
-			send_message_view(),
+			send_message_view(&state.current_msg),
 		])
 		.spacing(10)
 		.grow(1),
@@ -139,8 +140,9 @@ pub fn ui(state: &State) -> Item {
 		projects_tabs(&state),
 		state
 			.active_project
-			.map(|project| project_view(&state.projects[project]))
+			.map(|project| project_view(&state.projects[project], state))
 			.unwrap_or(text("no project selected")),
 	])
 	.spacing(10)
+	.margin(10)
 }
