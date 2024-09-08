@@ -1,3 +1,6 @@
+use serde::Deserialize;
+use serde_json::Value;
+
 use crate::history::History;
 
 #[derive(Debug)]
@@ -11,6 +14,8 @@ pub struct Project {
 	pub history: History,
 	pub instructions: String,
 	pub current_msg: String,
+	pub disallowed_files: Vec<String>,
+	pub activated_tools: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -22,7 +27,7 @@ pub struct TodoItem {
 #[derive(Debug, Default)]
 pub struct State {
 	pub projects: Vec<Project>,
-	pub disallowed_files: Vec<String>,
+	
 	pub active_project: Option<usize>,
 	pub current_msg: String,
 }
@@ -30,5 +35,16 @@ pub struct State {
 impl State {
 	pub fn new() -> State {
 		State::default()
+	}
+}
+
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ToolDef {
+	Function {
+		name: String,
+		description: String,
+		parameters: Value,
 	}
 }

@@ -134,6 +134,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "codegen"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_json",
+ "syn",
+]
+
+[[package]]
 name = "colored"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -599,6 +609,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "codegen",
  "log",
  "open",
  "reqwest",
@@ -1637,7 +1648,7 @@ dependencies = [
 [[package]]
 name = "wgui"
 version = "0.1.0"
-source = "git+https://github.com/J45k4/wgui.git?rev=1bc64b582668325bb91b89d89abca7c311888483#1bc64b582668325bb91b89d89abca7c311888483"
+source = "git+https://github.com/J45k4/wgui.git?rev=383408efe892eaed8e359e231760dd6b2a331686#383408efe892eaed8e359e231760dd6b2a331686"
 dependencies = [
  "anyhow",
  "futures-util",

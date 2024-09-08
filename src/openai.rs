@@ -160,7 +160,7 @@ struct OAIRequest {
 
 pub async fn gen(req: llm::GenRequest, client: Client) -> anyhow::Result<llm::SuccessfullGenResponse> {
 	let oaireq = OAIRequest {
-		model: req.model.to_str().to_string(),
+		model: req.tools.to_string(),
 		tools: serde_json::from_str(TOOLS_DATA).unwrap(),
 		messages: req.messages.iter().map(|msg| {
 			match msg {

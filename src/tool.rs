@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::Path;
 
 use anyhow::Ok;
+use codegen::ToolCodegen;
 use serde::Deserialize;
 use serde::Serialize;
 use tokio::fs;
@@ -53,23 +54,22 @@ pub struct FindText {
 	pub path: String
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(tag = "name", content = "arguments")] 
+#[derive(Debug, Clone, ToolCodegen)]
 pub enum Tool {
-	#[serde(rename = "write_file")]
-	WriteFile(WriteFile),
-	#[serde(rename = "read_file")]
-	ReadFile(ReadFile),
-	#[serde(rename = "delete_file")]
-	RemoveFile(RemoveFile),
-	#[serde(rename = "list_folder_contents")]
-	ListFolderContents(ListFolderContents),
-	#[serde(rename = "create_folder")]
-	CreateTodoItem(CreateTodoItem),
-	#[serde(rename = "delete_folder")]
-	CompleteTodoItem(CompleteTodoItem),
-	#[serde(rename = "find_text")]
-	FindText(FindText),
+    #[tool(name = "write_file", description = "Write content to a file.")]
+    WriteFile(WriteFile),
+    #[tool(name = "read_file", description = "Read content from a file.")]
+    ReadFile(ReadFile),
+    #[tool(name = "remove_file", description = "Remove a file from the filesystem.")]
+    RemoveFile(RemoveFile),
+    #[tool(name = "list_folder_contents", description = "List contents of a folder.")]
+    ListFolderContents(ListFolderContents),
+    #[tool(name = "create_todo_item", description = "Create a new to-do item.")]
+    CreateTodoItem(CreateTodoItem),
+    #[tool(name = "complete_todo_item", description = "Mark a to-do item as complete.")]
+    CompleteTodoItem(CompleteTodoItem),
+    #[tool(name = "find_text", description = "Find text within a file or directory.")]
+    FindText(FindText),
 }
 
 impl Tool {
@@ -194,4 +194,10 @@ impl ToolExecutor {
 	pub async fn get_result(&mut self) {
 
 	} 
+}
+
+pub fn get_tools() {
+	// let readFile = WriteFile {
+	// 	path
+	// }
 }

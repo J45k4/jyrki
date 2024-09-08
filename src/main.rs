@@ -5,6 +5,7 @@ use tool::ToolExecutor;
 use types::Project;
 use types::State;
 use types::TodoItem;
+use types::ToolDef;
 use ui::ui;
 use ui::MESSAGE_INPUT;
 use ui::SELECT_PROJECT_LINK;
@@ -34,7 +35,7 @@ struct App {
 
 impl App {
 	pub fn new() -> App {
-		let project = Project {
+		let mut project = Project {
 			input_token_cost: 0.0,
 			output_token_cost: 0.0,
 			input_token_count: 0,
@@ -52,6 +53,8 @@ impl App {
 			],
 			current_msg: "".to_string(),
 			history: History::new(),
+			activated_tools: vec!["write_file".to_string(), "read_file".to_string()],
+			disallowed_files: vec!["secret.txt".to_string()],
 			// items: vec![
 			//     ConversationItem::AssistantMessage(vec!["Hello".to_string()]),
 			//     ConversationItem::UserMessage(vec!["Hi".to_string()]),
@@ -64,8 +67,18 @@ impl App {
 			// ],
 		};
 
+		for i in 0..200 {
+			project.history.add_message(LLMMessage::User(format!("Hi {}", i)));
+		}
+
 		let mut state = State::new();
 		state.projects.push(project);
+
+		// let tooldef = ToolDef::Function { 
+		// 	name: "read_file".to_string(), 
+		// 	description: "Reads a file".to_string(), 
+		// 	parameters: 
+		// };
 
 		let tools = serde_json::from_str(TOOLS_DATA).unwrap();
 		open::that("http://localhost:7765").unwrap();
