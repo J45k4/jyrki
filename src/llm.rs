@@ -1,8 +1,8 @@
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc::UnboundedSender;
+use crate::generated::*;
 use crate::openai;
-use crate::tool::Tool;
 
 pub const GPT_4O: &str = "gpt-4o";
 pub const GPT_4O_MINI: &str = "gpt-4o-mini";
@@ -10,7 +10,7 @@ pub const GPT_4O_MINI: &str = "gpt-4o-mini";
 #[derive(Debug, Clone)]
 pub struct ToolCall {
 	pub id: String,
-	pub tool: Tool
+	pub tool: ToolCallParameters
 }
 
 #[derive(Debug, Clone)]
@@ -73,7 +73,7 @@ pub enum LLMMessage {
 pub struct GenRequest {
     pub model: Model,
     pub messages: Vec<LLMMessage>,
-    pub tools: Value
+    pub tools: Vec<Tool>,
 }
 
 #[derive(Debug)]

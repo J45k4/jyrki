@@ -3,10 +3,9 @@ use reqwest::Client;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value;
 use crate::llm;
 use crate::tool;
-use crate::tool::Tool;
-use crate::TOOLS_DATA;
 
 #[derive(Deserialize, Debug)]
 struct ChatCompletion {
@@ -155,13 +154,13 @@ struct Usage {
 struct OAIRequest {
 	messages: Vec<OAIMessage>,
 	model: String,
-	tools: serde_json::Value,
+	tools: Vec<Value>
 }
 
 pub async fn gen(req: llm::GenRequest, client: Client) -> anyhow::Result<llm::SuccessfullGenResponse> {
 	let oaireq = OAIRequest {
-		model: req.tools.to_string(),
-		tools: serde_json::from_str(TOOLS_DATA).unwrap(),
+		model: req.model.to_str().to_string(),
+		tools: req.tools.iter().map(|p| p.to_value()).collect(),
 		messages: req.messages.iter().map(|msg| {
 			match msg {
 				llm::LLMMessage::Assistant(msg) => OAIMessage {
@@ -169,6 +168,7 @@ pub async fn gen(req: llm::GenRequest, client: Client) -> anyhow::Result<llm::Su
 					content: Some(msg.content.clone()),
 					tool_calls: if msg.tool_calls.len() > 0 {
 						Some(msg.tool_calls.iter().map(|tool_call| {
+							tool_call.
 							ToolCall {
 								id: tool_call.id.clone(),
 								type_: "function".to_string(),

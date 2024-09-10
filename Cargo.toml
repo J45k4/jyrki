@@ -16,4 +16,6 @@ open = "5"
 wgui = { git = "https://github.com/J45k4/wgui.git", rev = "383408efe892eaed8e359e231760dd6b2a331686" }
 
 [dev-dependencies]
-codegen = { path = "./codegen" }
+
+[workspace]
+members = ["codegen"]

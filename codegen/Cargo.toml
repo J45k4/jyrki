@@ -8,6 +8,3 @@ syn = "2"
 quote = "1"
 proc-macro2 = "1"
 serde_json = "1"
-
-[lib]
-proc-macro = true

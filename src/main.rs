@@ -20,8 +20,9 @@ mod history;
 mod tool;
 mod ui;
 mod types;
+mod generated;
 
-pub const TOOLS_DATA: &str = include_str!("./tools.json");
+//pub const TOOLS_DATA: &str = include_str!("./tools.json");
 
 
 struct App {
