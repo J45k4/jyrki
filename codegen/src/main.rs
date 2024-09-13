@@ -16,11 +16,31 @@ struct Parameter {
 	mandatory: bool,
 }
 
+
 #[derive(Debug)]
 struct ToolDef {
 	name: String,
 	description: String,
 	parameters: Vec<Parameter>,
+}
+
+impl ToolDef {
+	fn get_parameters(&self) -> Value {
+		serde_json::json!(
+			{
+				"type": "object",
+				"required": self.parameters.iter().filter(|param| param.mandatory).map(|param| Value::String(param.name.to_string())).collect::<Vec<Value>>(),
+				"properties": self.parameters.iter().map(|param| {
+					(param.name.to_string(), serde_json::json!(
+						{
+							"type": param.typ.to_string(),
+							"description": param.description.to_string()
+						}
+					))
+				}).collect::<serde_json::Map<String, Value>>()
+			}
+		)
+	}
 }
 
 fn snake_to_pascal_case(s: &str) -> String {
@@ -102,7 +122,7 @@ pub fn main() {
 
 	// println!("Tool definitions: {:#?}", tool_defs);
 
-	let tool_enum = format!("#[derive(debug)]\npub enum Tool {{\n{}\n}}", tool_defs.iter().map(|tool| {
+	let tool_enum = format!("#[derive(Debug, Clone, PartialEq)]\npub enum Tool {{\n{}\n}}", tool_defs.iter().map(|tool| {
 		format!("\t{}", snake_to_pascal_case(&tool.name))
 	}).collect::<Vec<String>>().join(",\n"));
 
@@ -118,10 +138,44 @@ pub fn main() {
 		format!("\t\t\tTool::{} => \"{}\".to_string(),", name, human_str)
 	}).collect::<Vec<String>>().join("\n"));
 
+	let tool_impls = format!(r#"impl Tool {{
+	pub fn get_name(&self) -> &str {{
+		match self {{
+{}
+		}}
+	}}
+
+	pub fn get_description(&self) -> &str {{
+		match self {{
+{}
+		}}
+	}}
+
+	pub fn get_parameters(&self) -> serde_json::Value {{
+		match self {{
+{}
+		}}
+	}}
+}}"#, tool_defs.iter().map(|tool| {
+		let name = snake_to_pascal_case(&tool.name);
+		format!("\t\t\tTool::{} => \"{}\",", name, tool.name)
+	}).collect::<Vec<String>>().join("\n"),
+	tool_defs.iter().map(|tool| {
+		let name = snake_to_pascal_case(&tool.name);
+		format!("\t\t\tTool::{} => \"{}\",", name, tool.description)
+	}).collect::<Vec<String>>().join("\n"),
+	tool_defs.iter().map(|tool| {
+		let name = snake_to_pascal_case(&tool.name);
+		format!("\t\t\tTool::{} => serde_json::json!({}),", name, tool.get_parameters())
+	}).collect::<Vec<String>>().join("\n"));
+
+
 	let tools_array = format!("pub const TOOLS: [Tool; {}] = [\n{}\n];", tool_defs.len(), tool_defs.iter().map(|tool| {
 		let name = snake_to_pascal_case(&tool.name);
 		format!("\tTool::{},", name)
 	}).collect::<Vec<String>>().join("\n"));
+
+	let tools_string = [tool_enum, tool_to_string_impl, tool_impls, tools_array].join("\n\n");
 
 	let structs = tool_defs.iter().map(|tool| {
 		let name = tool.name.to_string();
@@ -143,25 +197,56 @@ pub fn main() {
 			format!("\tpub {}: {},", param_name, param_type)
 		}).collect::<Vec<String>>().join("\n");
 
-		format!(r#"#[derive(Debug, Clone)]
+		format!(r#"#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct {} {{
 {}
 }}"#, pascal_name, parameters)
 	}).collect::<Vec<String>>().join("\n\n");
 
-	let mut code = format!(r#"
+	let tool_call_impls = format!(r#"impl ToolCallParameters {{
+	pub fn get_name(&self) -> &str {{
+		match self {{
 {}
+		}}
+	}}
+
+	pub fn get_args(&self) -> String {{
+		match self {{
 {}
+		}}
+	}}
+
+	pub fn parse(name: &str, args: &str) -> anyhow::Result<ToolCallParameters> {{
+		match name {{
+{}
+			_ => anyhow::bail!("Unknown tool: {{}}", name),
+		}}
+	}}
+}}"#, tool_defs.iter().map(|tool| {
+		format!("\t\t\tToolCallParameters::{}(_) => \"{}\",", snake_to_pascal_case(&tool.name), tool.name)
+	}).collect::<Vec<String>>().join("\n"),
+	tool_defs.iter().map(|tool| {
+		let name = snake_to_pascal_case(&tool.name);
+		format!("\t\t\tToolCallParameters::{}(args) => serde_json::to_string(args).unwrap(),", name)
+	}).collect::<Vec<String>>().join("\n"),
+	tool_defs.iter().map(|tool| {
+		let name = snake_to_pascal_case(&tool.name);
+		format!("\t\t\t\"{}\" => Ok(ToolCallParameters::{}(serde_json::from_str(args)?)),", tool.name, name)
+	}).collect::<Vec<String>>().join("\n"));
+
+	let code = format!(r#"
 {}
 {}
 #[derive(Debug, Clone)]
 pub enum ToolCallParameters {{
 	{}
-}}"#, tool_enum, tool_to_string_impl, tools_array, structs, tool_defs.iter().map(|tool| {
+}}
+
+{}"#, tools_string, structs, tool_defs.iter().map(|tool| {
 		let name = tool.name.to_string();
 		let pascal_name = snake_to_pascal_case(&name);
 		format!("{}({})", pascal_name, pascal_name)
-	}).collect::<Vec<String>>().join(",\n\t"));
+	}).collect::<Vec<String>>().join(",\n\t"), tool_call_impls);
 
 	println!("{}", code);
 

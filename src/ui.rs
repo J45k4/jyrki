@@ -1,7 +1,7 @@
 use wgui::Item;
 use wgui::*;
-use crate::tool;
-use crate::tool::Tool;
+use crate::generated::ToolCallParameters;
+use crate::generated::TOOLS;
 use crate::types::Project;
 use crate::types::State;
 use crate::types::TodoItem;
@@ -11,6 +11,7 @@ use crate::ToolCall;
 pub const SELECT_PROJECT_LINK: u32 = 1;
 pub const SEND_MESSAGE_BUTTON: u32 = 2;
 pub const MESSAGE_INPUT: u32 = 3;
+pub const TOOL_CHECKBOX: u32 = 4;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -60,16 +61,18 @@ fn todo_list_view(todo_items: &Vec<TodoItem>) -> Item {
 	vstack(todo_items.iter().map(todo_item_view)).spacing(10)
 }
 
-fn tools_list_view() -> Item {
+fn tools_list_view(project: &Project) -> Item {
 	vstack([
 		text("Tools"),
-		vstack([
-			hstack([checkbox(), text("WriteFile")]),
-			hstack([checkbox(), text("ReadFile")]),
-			hstack([checkbox(), text("ListFolderContents")]),
-			hstack([checkbox(), text("CreateTodoItem")]),
-			hstack([checkbox(), text("CompleteTodoItem")]),
-		]),
+		vstack(TOOLS.iter().enumerate().map(|(inx, tool)| {
+			hstack([
+				checkbox()
+					.checked(project.activated_tools.contains(tool))
+					.id(TOOL_CHECKBOX)
+					.inx(inx as u32),
+				text(&tool.get_name()),
+			])
+		})),
 	])
 	.border("1px solid black")
 	.spacing(10)
@@ -101,7 +104,7 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 	vstack([
 		text(&tool_call.id),
 		match &tool_call.tool {
-			Tool::WriteFile(w) => {
+			ToolCallParameters::WriteFile(w) => {
 				vstack([
 					text("WriteFile"),
 					text(&format!("path: {}", w.path)),
@@ -109,7 +112,7 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 					multile_text(&w.content),
 				])
 			},
-			Tool::ReadFile(r) => {
+			ToolCallParameters::ReadFile(r) => {
 				vstack([
 					text("ReadFile"),
 					text(&format!("path: {}", r.path)),
@@ -117,13 +120,13 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 					text(&format!("line number count: {}", r.linenumber_count)),
 				])
 			},
-			Tool::RemoveFile(r) => {
+			ToolCallParameters::RemoveFile(r) => {
 				vstack([
 					text("RemoveFile"),
 					text(&r.path),
 				])
 			},
-			Tool::ListFolderContents(l) => {
+			ToolCallParameters::ListFolderContent(l) => {
 				vstack([
 					text("ListFolderContents"),
 					text(&l.path),
@@ -183,7 +186,7 @@ fn project_view(project: &Project, state: &State) -> Item {
 		// .grow(1),
 		vstack([
 			tokens_view(project), 
-			tools_list_view(), 
+			tools_list_view(project), 
 			forbidden_files(project),
 			todo_list_view(&project.todo_items)
 		]).spacing(10),

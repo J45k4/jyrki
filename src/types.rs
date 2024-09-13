@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::generated::Tool;
 use crate::history::History;
 
 #[derive(Debug)]
@@ -15,7 +18,7 @@ pub struct Project {
 	pub instructions: String,
 	pub current_msg: String,
 	pub disallowed_files: Vec<String>,
-	pub activated_tools: Vec<String>,
+	pub activated_tools: Vec<Tool>,
 }
 
 #[derive(Debug)]

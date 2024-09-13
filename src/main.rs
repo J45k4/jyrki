@@ -1,4 +1,5 @@
 use env::load_envs;
+use generated::TOOLS;
 use history::History;
 use llm::*;
 use tool::ToolExecutor;
@@ -10,6 +11,7 @@ use ui::ui;
 use ui::MESSAGE_INPUT;
 use ui::SELECT_PROJECT_LINK;
 use ui::SEND_MESSAGE_BUTTON;
+use ui::TOOL_CHECKBOX;
 use std::collections::HashSet;
 use wgui::*;
 
@@ -30,7 +32,6 @@ struct App {
 	clients: HashSet<usize>,
 	state: State,
 	llm_client: LLMClient,
-	tools: serde_json::Value,
 	executor: ToolExecutor,
 }
 
@@ -54,7 +55,7 @@ impl App {
 			],
 			current_msg: "".to_string(),
 			history: History::new(),
-			activated_tools: vec!["write_file".to_string(), "read_file".to_string()],
+			activated_tools: TOOLS.to_vec(),
 			disallowed_files: vec!["secret.txt".to_string()],
 			// items: vec![
 			//     ConversationItem::AssistantMessage(vec!["Hello".to_string()]),
@@ -68,9 +69,9 @@ impl App {
 			// ],
 		};
 
-		for i in 0..200 {
-			project.history.add_message(LLMMessage::User(format!("Hi {}", i)));
-		}
+		// for i in 0..200 {
+		// 	project.history.add_message(LLMMessage::User(format!("Hi {}", i)));
+		// }
 
 		let mut state = State::new();
 		state.projects.push(project);
@@ -80,8 +81,6 @@ impl App {
 		// 	description: "Reads a file".to_string(), 
 		// 	parameters: 
 		// };
-
-		let tools = serde_json::from_str(TOOLS_DATA).unwrap();
 		open::that("http://localhost:7765").unwrap();
 
 		App {
@@ -89,7 +88,6 @@ impl App {
 			clients: HashSet::new(),
 			state,
 			llm_client: LLMClient::new(),
-			tools,
 			executor: ToolExecutor::new(),
 		}
 	}
@@ -123,10 +121,24 @@ impl App {
 					let req = GenRequest {
 						model: Model::GPT4OMini,
 						messages,
-						tools: self.tools.clone(),
+						tools: TOOLS.iter()
+							.filter(|tool| project.activated_tools.contains(tool))
+							.cloned().collect(),
 					};
 
 					self.llm_client.gen(req);
+				}
+				TOOL_CHECKBOX => {
+					let project = self.state.projects.get_mut(0).unwrap();
+					let inx = o.inx.unwrap() as usize;
+					match project.activated_tools.iter().position(|tool| tool == &TOOLS[inx]) {
+						Some(i) => {
+							project.activated_tools.remove(i);
+						}
+						None => {
+							project.activated_tools.push(TOOLS[inx].clone());
+						}
+					}
 				}
 				_ => {}
 			},

@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::Path;
 
 use anyhow::Ok;
-use codegen::Tool;
 // use codegen::ToolCodegen;
 use serde::Deserialize;
 use serde::Serialize;
@@ -13,6 +12,8 @@ use tokio::fs::OpenOptions;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncSeekExt;
 use tokio::io::AsyncWriteExt;
+
+use crate::generated::ToolCallParameters;
 
 // #[derive(Debug, Deserialize, Serialize, Clone)]
 // pub struct WriteFile {
@@ -108,9 +109,9 @@ impl ToolExecutor {
 		}
 	}
 
-	pub async fn execute(&self, tool: Tool) -> anyhow::Result<String> {
+	pub async fn execute(&self, tool: ToolCallParameters) -> anyhow::Result<String> {
 		let res = match tool {
-			Tool::WriteFile(w) => {
+			ToolCallParameters::WriteFile(w) => {
 				let path = Path::new(&self.base_path).join(&w.path);
 				let file_name = path.file_name().unwrap().to_str().unwrap();
 				if self.forbidden_files.contains(&file_name.to_string()) {
@@ -142,7 +143,7 @@ impl ToolExecutor {
 
 				"File written".to_string()
 			},
-			Tool::ReadFile(r) => {
+			ToolCallParameters::ReadFile(r) => {
 				let path = Path::new(&self.base_path).join(&r.path);
                 let mut file = File::open(&path).await?;
                 let mut content = String::new();
@@ -155,7 +156,7 @@ impl ToolExecutor {
 
                 selected_lines.join("\n")
 			},
-			Tool::RemoveFile(r) => {
+			ToolCallParameters::RemoveFile(r) => {
 				let path = Path::new(&self.base_path).join(&r.path);
 				if !path.exists() {
 					return Ok("File does not exist".to_string());
@@ -163,7 +164,7 @@ impl ToolExecutor {
 				tokio::fs::remove_file(&path).await?;
 				"File removed".to_string()
 			}
-			Tool::ListFolderContents(args) => {
+			ToolCallParameters::ListFolderContent(args) => {
 				let path = Path::new(&self.base_path).join(&args.path);
 
 				if !path.exists() {
@@ -178,15 +179,16 @@ impl ToolExecutor {
 				}
                 contents.join("\n")
 			},
-			Tool::CreateTodoItem(args) => {
+			ToolCallParameters::AddNewTodo(args) => {
 				todo!()
 			},
-			Tool::CompleteTodoItem(args) => {
+			ToolCallParameters::CompleteTodo(args) => {
 				todo!()
 			},
-			Tool::FindText(args) => {
+			ToolCallParameters::FindInFile(args) => {
 				todo!()
 			},
+			_ => todo!(),
 		};
 
 		Ok(res)
