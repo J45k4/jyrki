@@ -9,6 +9,7 @@ use types::TodoItem;
 use types::ToolDef;
 use ui::ui;
 use ui::MESSAGE_INPUT;
+use ui::SELECT_PROJECT_FOLDER;
 use ui::SELECT_PROJECT_LINK;
 use ui::SEND_MESSAGE_BUTTON;
 use ui::TOOL_CHECKBOX;
@@ -57,6 +58,7 @@ impl App {
 			history: History::new(),
 			activated_tools: TOOLS.to_vec(),
 			disallowed_files: vec!["secret.txt".to_string()],
+			folder_path: "".to_string(),
 			// items: vec![
 			//     ConversationItem::AssistantMessage(vec!["Hello".to_string()]),
 			//     ConversationItem::UserMessage(vec!["Hi".to_string()]),
@@ -137,6 +139,17 @@ impl App {
 						}
 						None => {
 							project.activated_tools.push(TOOLS[inx].clone());
+						}
+					}
+				}
+				SELECT_PROJECT_FOLDER => {
+					match rfd::AsyncFileDialog::new().pick_folder().await {
+						Some(handle) => {
+							let project = self.state.projects.get_mut(0).unwrap();
+							project.folder_path = handle.path().to_string_lossy().to_string();
+						},
+						None => {
+							log::info!("No folder selected");
 						}
 					}
 				}

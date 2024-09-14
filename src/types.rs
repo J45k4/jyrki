@@ -19,6 +19,7 @@ pub struct Project {
 	pub current_msg: String,
 	pub disallowed_files: Vec<String>,
 	pub activated_tools: Vec<Tool>,
+	pub folder_path: String
 }
 
 #[derive(Debug)]

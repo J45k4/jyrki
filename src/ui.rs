@@ -12,6 +12,7 @@ pub const SELECT_PROJECT_LINK: u32 = 1;
 pub const SEND_MESSAGE_BUTTON: u32 = 2;
 pub const MESSAGE_INPUT: u32 = 3;
 pub const TOOL_CHECKBOX: u32 = 4;
+pub const SELECT_PROJECT_FOLDER: u32 = 5;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -76,6 +77,7 @@ fn tools_list_view(project: &Project) -> Item {
 	])
 	.border("1px solid black")
 	.spacing(10)
+	.padding(5)
 }
 
 fn forbidden_files(project: &Project) -> Item {
@@ -138,6 +140,8 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 	.spacing(10)
 }
 
+
+
 fn project_view(project: &Project, state: &State) -> Item {
 	hstack([
 		vstack([
@@ -185,7 +189,12 @@ fn project_view(project: &Project, state: &State) -> Item {
 		.spacing(10),
 		// .grow(1),
 		vstack([
-			tokens_view(project), 
+			tokens_view(project),
+			vstack([
+				text("Project folder"),
+				text(&project.folder_path),
+				button("Select").id(SELECT_PROJECT_FOLDER),
+			]).border("1px solid black").padding(5),
 			tools_list_view(project), 
 			forbidden_files(project),
 			todo_list_view(&project.todo_items)
