@@ -20,7 +20,7 @@ struct ChatCompletion {
 }
 
 impl ChatCompletion {
-	fn to_successfull_gen_response(&self, model: &llm::Model) -> anyhow::Result<llm::SuccessfullGenResponse> {
+	fn to_successfull_gen_response(&self, model: &llm::LLMModel) -> anyhow::Result<llm::SuccessfullGenResponse> {
 		let first_choice = self.choices.first().ok_or_else(|| anyhow::anyhow!("no choices"))?;
 
 		let res = llm::SuccessfullGenResponse {
@@ -300,7 +300,7 @@ mod tests {
 		let res = serde_json::from_str::<ChatCompletion>(str).unwrap();
 		println!("{:?}", res);
 
-		let result = res.to_successfull_gen_response(&llm::Model::GPT4OMini).unwrap();
+		let result = res.to_successfull_gen_response(&llm::LLMModel::GPT4OMini).unwrap();
 
 		println!("{:?}", result);
 	}

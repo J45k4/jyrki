@@ -17,6 +17,7 @@ pub const NEW_PROJECT_BUTTON: u32 = 6;
 pub const PROJECT_NAME_INPUT: u32 = 7;
 pub const SAVE_PRJECT_BUTTON: u32 = 8;
 pub const INSTRUCTIONS_TEXT_INPUT: u32 = 9;
+pub const MODEL_SELECT: u32 = 10;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -158,7 +159,7 @@ fn project_view(project: &Project, state: &State) -> Item {
 				select([
 					option("gpt-4o-mini", "gpt-4o-mini"),
 					option("gpt-4o", "gpt-4o"),
-				]),
+				]).svalue(project.model.to_str()).id(MODEL_SELECT),
 			]).spacing(5).height(35),
 			send_message_view(&state.current_msg),
 			vstack(project.history.items.iter().rev().map(|item| {

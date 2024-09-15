@@ -60,7 +60,7 @@ impl App {
 		}
 		messages.extend_from_slice(&project.history.get_context());
 		let req = GenRequest {
-			model: Model::GPT4OMini,
+			model: project.model.clone(),
 			messages,
 			tools: TOOLS.iter()
 				.filter(|tool| project.activated_tools.contains(tool))
@@ -139,19 +139,31 @@ impl App {
 					self.state.current_msg = t.value;
 				}
 				PROJECT_NAME_INPUT => {
-					if let Some(active_project) = self.state.active_project {
-						let project = self.state.projects.get_mut(active_project).unwrap();
+					if let Some(project) = self.get_active_project() {
 						project.name = t.value;
+						project.modified = true;
 					}
 				}
 				INSTRUCTIONS_TEXT_INPUT => {
-					if let Some(active_project) = self.state.active_project {
-						let project = self.state.projects.get_mut(active_project).unwrap();
+					if let Some(project) = self.get_active_project() {
 						project.instructions = t.value;
+						project.modified = true;
 					}
 				}
 				_ => {}
 			},
+			ClientEvent::OnSelect(event) => {
+				match event.id {
+					MODEL_SELECT => {
+						log::info!("model selected: {:?}", event.value);
+						if let Some(project) = self.get_active_project() {
+							project.model = LLMModel::from_str(&event.value).unwrap();
+							project.modified = true;
+						}
+					}
+					_ => {}
+				}
+			}
 			_ => {}
 		};
 

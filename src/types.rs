@@ -1,50 +1,33 @@
-use std::collections::HashSet;
-
 use serde::Deserialize;
 use serde_json::Value;
-
 use crate::generated::Tool;
 use crate::history::History;
+use crate::LLMModel;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+fn default_folder_path() -> String {
+	"./workdir".to_string()
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Project {
 	pub name: String,
+	#[serde(default)]
+	pub model: LLMModel,
 	pub output_token_count: u32,
 	pub input_token_count: u32,
 	pub input_token_cost: f32,
 	pub output_token_cost: f32,
 	pub todo_items: Vec<TodoItem>,
-	// items: Vec<ConversationItem>,
 	pub history: History,
 	pub instructions: String,
 	pub current_msg: String,
 	pub disallowed_files: Vec<String>,
 	pub activated_tools: Vec<Tool>,
+	#[serde(default = "default_folder_path")]
 	pub folder_path: String,
 	#[serde(default)]
 	pub forbidden_files: Vec<String>,
 	pub modified: bool,
-}
-
-impl Default for Project {
-	fn default() -> Project {
-		Project {
-			name: "New Project".to_string(),
-			forbidden_files: Vec::new(),
-			output_token_count: 0,
-			input_token_count: 0,
-			input_token_cost: 0.0,
-			output_token_cost: 0.0,
-			todo_items: Vec::new(),
-			history: History::new(),
-			instructions: "".to_string(),
-			current_msg: "".to_string(),
-			disallowed_files: Vec::new(),
-			activated_tools: Vec::new(),
-			folder_path: "./workdir".to_string(),
-			modified: true,
-		}
-	}
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

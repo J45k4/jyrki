@@ -15,7 +15,7 @@ chrono = { version = "0.4", features = ["serde"] }
 open = "5"
 rfd = "0.14"
 homedir = "0.3"
-wgui = { git = "https://github.com/J45k4/wgui.git", rev = "383408efe892eaed8e359e231760dd6b2a331686" }
+wgui = { git = "https://github.com/J45k4/wgui.git", rev = "04ce99606d7c7fa3e5c0d3ea2eb1be08b59ba30b" }
 
 [dev-dependencies]
 

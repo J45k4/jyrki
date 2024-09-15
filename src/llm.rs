@@ -30,33 +30,45 @@ const GPT_40_OUTPUT_COST: f32 = 10.0 / 1_000_000.0;
 const GPT_40_MINI_INPUT_COST: f32 = 0.150 / 1_000_000.0;
 const GPT_40_MINI_OUTPUT_COST: f32 = 0.600 / 1_000_000.0;
 
-#[derive(Debug)]
-pub enum Model {
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum LLMModel {
 	GPT4O,
 	GPT4OMini,
 }
 
-impl Model {
+impl Default for LLMModel {
+	fn default() -> LLMModel {
+		LLMModel::GPT4OMini
+	}
+}
+
+impl LLMModel {
 	pub fn input_cost(&self, token_count: u32) -> f32 {
 		match self {
-			Model::GPT4O => token_count as f32 * GPT_40_INPUT_COST,
-			Model::GPT4OMini => token_count as f32 * GPT_40_MINI_INPUT_COST,
+			LLMModel::GPT4O => token_count as f32 * GPT_40_INPUT_COST,
+			LLMModel::GPT4OMini => token_count as f32 * GPT_40_MINI_INPUT_COST,
 		}
 	}
 
 	pub fn output_cost(&self, token_count: u32) -> f32 {
 		match self {
-			Model::GPT4O => token_count as f32 * GPT_40_OUTPUT_COST,
-			Model::GPT4OMini => token_count as f32 * GPT_40_MINI_OUTPUT_COST,
+			LLMModel::GPT4O => token_count as f32 * GPT_40_OUTPUT_COST,
+			LLMModel::GPT4OMini => token_count as f32 * GPT_40_MINI_OUTPUT_COST,
 		}
 	}
-}
 
-impl Model {
 	pub fn to_str(&self) -> &str {
 		match self {
-			Model::GPT4O => GPT_4O,
-			Model::GPT4OMini => GPT_4O_MINI,
+			LLMModel::GPT4O => GPT_4O,
+			LLMModel::GPT4OMini => GPT_4O_MINI,
+		}
+	}
+
+	pub fn from_str(s: &str) -> Option<LLMModel> {
+		match s {
+			GPT_4O => Some(LLMModel::GPT4O),
+			GPT_4O_MINI => Some(LLMModel::GPT4OMini),
+			_ => None,
 		}
 	}
 }
@@ -71,7 +83,7 @@ pub enum LLMMessage {
 
 #[derive(Debug)]
 pub struct GenRequest {
-    pub model: Model,
+    pub model: LLMModel,
     pub messages: Vec<LLMMessage>,
     pub tools: Vec<Tool>,
 }
@@ -121,7 +133,7 @@ impl LLMClient {
         let tx = self.tx.clone();
         tokio::spawn(async move {
 			let res = match req.model {
-				Model::GPT4O | Model::GPT4OMini => openai::gen(req, client).await,
+				LLMModel::GPT4O | LLMModel::GPT4OMini => openai::gen(req, client).await,
 			};
 
             match res {

@@ -2200,7 +2200,7 @@ dependencies = [
 [[package]]
 name = "wgui"
 version = "0.1.0"
-source = "git+https://github.com/J45k4/wgui.git?rev=383408efe892eaed8e359e231760dd6b2a331686#383408efe892eaed8e359e231760dd6b2a331686"
+source = "git+https://github.com/J45k4/wgui.git?rev=04ce99606d7c7fa3e5c0d3ea2eb1be08b59ba30b#04ce99606d7c7fa3e5c0d3ea2eb1be08b59ba30b"
 dependencies = [
  "anyhow",
  "futures-util",
