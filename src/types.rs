@@ -21,7 +21,6 @@ pub struct Project {
 	pub history: History,
 	pub instructions: String,
 	pub current_msg: String,
-	pub disallowed_files: Vec<String>,
 	pub activated_tools: Vec<Tool>,
 	#[serde(default = "default_folder_path")]
 	pub folder_path: String,
@@ -41,6 +40,7 @@ pub struct State {
 	pub projects: Vec<Project>,
 	pub active_project: Option<usize>,
 	pub current_msg: String,
+	pub new_forbidden_file_name: String,
 }
 
 impl State {

@@ -18,6 +18,9 @@ pub const PROJECT_NAME_INPUT: u32 = 7;
 pub const SAVE_PRJECT_BUTTON: u32 = 8;
 pub const INSTRUCTIONS_TEXT_INPUT: u32 = 9;
 pub const MODEL_SELECT: u32 = 10;
+pub const NEW_FORBIDDEN_FILE_NAME: u32 = 11;
+pub const NEW_FORBIDDEN_FILE_BUTTON: u32 = 12;
+pub const DELETE_FORBIDDEN_FILE_BUTTON: u32 = 13;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -88,10 +91,20 @@ fn tools_list_view(project: &Project) -> Item {
 fn forbidden_files(project: &Project) -> Item {
 	vstack([
 		text("Forbidden files"),
-		vstack(project.disallowed_files.iter().map(|file| text(file))),
+		vstack(project.forbidden_files.iter().enumerate().map(|(inx, file)| {
+			hstack([
+				text(file),
+				button("delete").id(DELETE_FORBIDDEN_FILE_BUTTON).inx(inx as u32),
+			])
+		})),
+		hstack([
+			text_input().placeholder("file name").id(NEW_FORBIDDEN_FILE_NAME),
+			button("Add").id(NEW_FORBIDDEN_FILE_BUTTON),
+		]).spacing(5),
 	])
 	.border("1px solid black")
 	.spacing(10)
+	.padding(5)
 }
 
 fn send_message_view(msg: &str) -> Item {
@@ -104,7 +117,17 @@ fn send_message_view(msg: &str) -> Item {
 }
 
 fn multile_text(t: &str) -> Item {
-	vstack(t.split("\n").map(|line| text(line))).spacing(5)
+	vstack(t.split("\n").map(|line| {
+		let mut ident_count = 0;
+		for c in line.chars() {
+			if c == ' ' {
+				ident_count += 1;
+			} else {
+				break;
+			}
+		}
+		text(line).margin_left(ident_count as u16 * 5)
+	})).spacing(5)
 }
 
 fn tool_call_view(tool_call: &ToolCall) -> Item {
@@ -174,13 +197,12 @@ fn project_view(project: &Project, state: &State) -> Item {
 								.spacing(10)
 						},
 						LLMMessage::Assistant(msg) => {
-							hstack([
-								vstack([
-									text("Assistant"),
-									text(&msg.content),
-								]),
+							vstack([
+								text("Assistant"),
+								text(&msg.content),
 								vstack(msg.tool_calls.iter().map(|tool_call| tool_call_view(tool_call))),
-							]).spacing(10)
+							])
+							.spacing(10)
 						},
 						_ => text("Unknown message type"),
 					}
@@ -234,7 +256,12 @@ fn projects_tabs(state: &State) -> Item {
 		hstack(
 			state.projects.iter().enumerate().map(|(inx, project)| {
 				let modified = if project.modified { "*" } else { "" };
-				nav_item(&format!("{} {}", project.name, modified))
+				let name = if project.name.is_empty() {
+					format!("Project {}", inx + 1)
+				} else {
+					project.name.to_string()
+				};
+				nav_item(&format!("{} {}", name, modified))
 					.inx(inx as u32)
 			})
 		).spacing(10),

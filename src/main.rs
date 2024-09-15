@@ -54,6 +54,15 @@ impl App {
 		project.history.add_message(LLMMessage::User(self.state.current_msg.clone()));
 		self.state.current_msg.clear();
 		let mut messages = Vec::new();
+		let mut assistant_msg = String::new();
+
+		if !project.instructions.is_empty() {
+			assistant_msg += &format!("Instructions: {}\n", project.instructions);
+		}
+		if !project.name.is_empty() {
+			assistant_msg += &format!("Project name: {}\n", project.name);
+		}
+
 		if !project.instructions.is_empty() {
 			let msg = LLMMessage::System(project.instructions.clone());
 			messages.push(msg);
@@ -96,14 +105,15 @@ impl App {
 					self.send_message();
 				}
 				TOOL_CHECKBOX => {
-					let project = self.state.projects.get_mut(0).unwrap();
-					let inx = o.inx.unwrap() as usize;
-					match project.activated_tools.iter().position(|tool| tool == &TOOLS[inx]) {
-						Some(i) => {
-							project.activated_tools.remove(i);
-						}
-						None => {
-							project.activated_tools.push(TOOLS[inx].clone());
+					if let Some(project) = self.get_active_project() {
+						let inx = o.inx.unwrap() as usize;
+						match project.activated_tools.iter().position(|tool| tool == &TOOLS[inx]) {
+							Some(i) => {
+								project.activated_tools.remove(i);
+							}
+							None => {
+								project.activated_tools.push(TOOLS[inx].clone());
+							}
 						}
 					}
 				}
@@ -121,7 +131,10 @@ impl App {
 					}
 				}
 				NEW_PROJECT_BUTTON => {
-					let project = Project::default();
+					let project = Project {
+						modified: true,
+						..Default::default()
+					};
 					self.state.projects.push(project);
 				}
 				SAVE_PRJECT_BUTTON => {
@@ -130,6 +143,19 @@ impl App {
 						let save_path = get_projects_dir().join(format!("{}.json", project.name));
 						let content = serde_json::to_string_pretty(project).unwrap();
 						tokio::fs::write(save_path, content).await.unwrap();
+					}
+				}
+				NEW_FORBIDDEN_FILE_BUTTON => {
+					let new_forbidden_file_name = self.state.new_forbidden_file_name.clone();
+					if let Some(project) = self.get_active_project() {
+						project.forbidden_files.push(new_forbidden_file_name);
+						project.modified = true;
+					}
+				}
+				DELETE_FORBIDDEN_FILE_BUTTON => {
+					if let Some(project) = self.get_active_project() {
+						project.forbidden_files.remove(o.inx.unwrap() as usize);
+						project.modified = true;
 					}
 				}
 				_ => {}
@@ -149,6 +175,9 @@ impl App {
 						project.instructions = t.value;
 						project.modified = true;
 					}
+				}
+				NEW_FORBIDDEN_FILE_NAME => {
+					self.state.new_forbidden_file_name = t.value;
 				}
 				_ => {}
 			},
@@ -174,29 +203,30 @@ impl App {
 		match result {
 			GenResult::Response(res) => {
 				log::info!("Response: {:?}", res);
-				let project = self.state.projects.get_mut(0).unwrap();
-				project.history.add_message(LLMMessage::Assistant(res.msg.clone()));
-				project.input_token_count += res.prompt_tokens;
-				project.output_token_count += res.completion_tokens;
-				project.input_token_cost += res.promt_cost;
-				project.output_token_cost += res.completion_cost;
-				project.modified = true;
-
-				for tool_call in res.msg.tool_calls {
-					match tool::execute(&project, tool_call.tool).await {
-						Ok(res) => {
-							log::info!("tool call result: {:?}", res);
-							project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
-								id: tool_call.id, 
-								content: res
-							}))
-						}
-						Err(e) => {
-							log::info!("tool call error: {:?}", e);
-							project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
-								id: tool_call.id, 
-								content: e.to_string()
-							}))
+				if let Some(project) = self.get_active_project() {
+					project.history.add_message(LLMMessage::Assistant(res.msg.clone()));
+					project.input_token_count += res.prompt_tokens;
+					project.output_token_count += res.completion_tokens;
+					project.input_token_cost += res.promt_cost;
+					project.output_token_cost += res.completion_cost;
+					project.modified = true;
+	
+					for tool_call in res.msg.tool_calls {
+						match tool::execute(&project, tool_call.tool).await {
+							Ok(res) => {
+								log::info!("tool call result: {:?}", res);
+								project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
+									id: tool_call.id, 
+									content: res
+								}))
+							}
+							Err(e) => {
+								log::info!("tool call error: {:?}", e);
+								project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
+									id: tool_call.id, 
+									content: e.to_string()
+								}))
+							}
 						}
 					}
 				}
