@@ -21,6 +21,8 @@ pub struct Project {
 	pub disallowed_files: Vec<String>,
 	pub activated_tools: Vec<Tool>,
 	pub folder_path: String,
+	#[serde(default)]
+	pub forbidden_files: Vec<String>,
 	pub modified: bool,
 }
 
@@ -28,6 +30,7 @@ impl Default for Project {
 	fn default() -> Project {
 		Project {
 			name: "New Project".to_string(),
+			forbidden_files: Vec::new(),
 			output_token_count: 0,
 			input_token_count: 0,
 			input_token_cost: 0.0,
@@ -38,7 +41,7 @@ impl Default for Project {
 			current_msg: "".to_string(),
 			disallowed_files: Vec::new(),
 			activated_tools: Vec::new(),
-			folder_path: "".to_string(),
+			folder_path: "./workdir".to_string(),
 			modified: true,
 		}
 	}

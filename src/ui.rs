@@ -16,6 +16,7 @@ pub const SELECT_PROJECT_FOLDER: u32 = 5;
 pub const NEW_PROJECT_BUTTON: u32 = 6;
 pub const PROJECT_NAME_INPUT: u32 = 7;
 pub const SAVE_PRJECT_BUTTON: u32 = 8;
+pub const INSTRUCTIONS_TEXT_INPUT: u32 = 9;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -152,13 +153,15 @@ fn project_view(project: &Project, state: &State) -> Item {
 				text_input()
 					.placeholder("Instructions")
 					.svalue(&project.instructions)
+					.id(INSTRUCTIONS_TEXT_INPUT)
 					.grow(1),
 				select([
 					option("gpt-4o-mini", "gpt-4o-mini"),
 					option("gpt-4o", "gpt-4o"),
 				]),
 			]).spacing(5).height(35),
-			vstack(project.history.items.iter().map(|item| {
+			send_message_view(&state.current_msg),
+			vstack(project.history.items.iter().rev().map(|item| {
 				hstack([
 					match &item.content {
 						LLMMessage::User(content) => {
@@ -186,8 +189,7 @@ fn project_view(project: &Project, state: &State) -> Item {
 			}))
 			.spacing(15)
 			.grow(1)
-			.overflow("auto"),
-			send_message_view(&state.current_msg),
+			.overflow("auto")
 		])
 		.spacing(10)
 		.grow(1),

@@ -1,10 +1,8 @@
 use env::load_envs;
 use generated::TOOLS;
 use llm::*;
-use tool::ToolExecutor;
 use types::*;
 use ui::*;
-use utility::get_app_dir;
 use utility::get_projects_dir;
 use std::collections::HashSet;
 use std::fs::read_dir;
@@ -25,7 +23,6 @@ struct App {
 	clients: HashSet<usize>,
 	state: State,
 	llm_client: LLMClient,
-	executor: ToolExecutor,
 }
 
 impl App {
@@ -40,7 +37,6 @@ impl App {
 			clients: HashSet::new(),
 			state,
 			llm_client: LLMClient::new(),
-			executor: ToolExecutor::new(),
 		}
 	}
 
@@ -54,9 +50,15 @@ impl App {
 
 	fn send_message(&mut self) {
 		let project = self.state.projects.get_mut(0).unwrap();
+		project.modified = true;
 		project.history.add_message(LLMMessage::User(self.state.current_msg.clone()));
 		self.state.current_msg.clear();
-		let messages = project.history.get_context();
+		let mut messages = Vec::new();
+		if !project.instructions.is_empty() {
+			let msg = LLMMessage::System(project.instructions.clone());
+			messages.push(msg);
+		}
+		messages.extend_from_slice(&project.history.get_context());
 		let req = GenRequest {
 			model: Model::GPT4OMini,
 			messages,
@@ -108,8 +110,10 @@ impl App {
 				SELECT_PROJECT_FOLDER => {
 					match rfd::AsyncFileDialog::new().pick_folder().await {
 						Some(handle) => {
-							let project = self.state.projects.get_mut(0).unwrap();
-							project.folder_path = handle.path().to_string_lossy().to_string();
+							if let Some(project) = self.get_active_project() {
+								project.modified = true;
+								project.folder_path = handle.path().to_string_lossy().to_string();
+							}
 						},
 						None => {
 							log::info!("No folder selected");
@@ -122,10 +126,10 @@ impl App {
 				}
 				SAVE_PRJECT_BUTTON => {
 					if let Some(project) = self.get_active_project() {
+						project.modified = false;
 						let save_path = get_projects_dir().join(format!("{}.json", project.name));
 						let content = serde_json::to_string_pretty(project).unwrap();
 						tokio::fs::write(save_path, content).await.unwrap();
-						project.modified = false;
 					}
 				}
 				_ => {}
@@ -138,6 +142,12 @@ impl App {
 					if let Some(active_project) = self.state.active_project {
 						let project = self.state.projects.get_mut(active_project).unwrap();
 						project.name = t.value;
+					}
+				}
+				INSTRUCTIONS_TEXT_INPUT => {
+					if let Some(active_project) = self.state.active_project {
+						let project = self.state.projects.get_mut(active_project).unwrap();
+						project.instructions = t.value;
 					}
 				}
 				_ => {}
@@ -158,18 +168,19 @@ impl App {
 				project.output_token_count += res.completion_tokens;
 				project.input_token_cost += res.promt_cost;
 				project.output_token_cost += res.completion_cost;
+				project.modified = true;
 
 				for tool_call in res.msg.tool_calls {
-					match self.executor.execute(tool_call.tool).await {
+					match tool::execute(&project, tool_call.tool).await {
 						Ok(res) => {
-							log::info!("Result: {:?}", res);
+							log::info!("tool call result: {:?}", res);
 							project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
 								id: tool_call.id, 
 								content: res
 							}))
 						}
 						Err(e) => {
-							log::info!("Error: {:?}", e);
+							log::info!("tool call error: {:?}", e);
 							project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
 								id: tool_call.id, 
 								content: e.to_string()
