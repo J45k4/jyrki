@@ -7,6 +7,7 @@ use ui::*;
 use utility::get_app_dir;
 use utility::get_projects_dir;
 use std::collections::HashSet;
+use std::fs::read_dir;
 use wgui::*;
 
 mod llm;
@@ -28,11 +29,11 @@ struct App {
 }
 
 impl App {
-	pub fn new() -> App {
-		let project = Project::default();
-
-		let mut state = State::new();
-		state.projects.push(project);
+	pub fn new(projects: Vec<Project>) -> App {
+		let state = State {
+			projects,
+			..Default::default()
+		};
 
 		App {
 			wgui: Wgui::new("0.0.0.0:7765".parse().unwrap()),
@@ -220,5 +221,21 @@ impl App {
 async fn main() {
 	simple_logger::init_with_level(log::Level::Info).unwrap();
 	load_envs();
-	App::new().run().await;
+	let projects_path = get_projects_dir();
+	let conent = read_dir(projects_path).unwrap();
+	let projects: Vec<Project> = conent
+		.filter_map(|entry| {
+			let entry = entry.unwrap();
+			let path = entry.path();
+			if path.is_file() {
+				log::info!("Loading project: {:?}", path);
+				let content = std::fs::read_to_string(path).unwrap();
+				Some(serde_json::from_str(&content).unwrap())
+			} else {
+				None
+			}
+		})
+		.collect();
+
+	App::new(projects).run().await;
 }

@@ -53,7 +53,6 @@ pub struct TodoItem {
 #[derive(Debug, Default)]
 pub struct State {
 	pub projects: Vec<Project>,
-	
 	pub active_project: Option<usize>,
 	pub current_msg: String,
 }
