@@ -7,19 +7,19 @@ use crate::openai;
 pub const GPT_4O: &str = "gpt-4o";
 pub const GPT_4O_MINI: &str = "gpt-4o-mini";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ToolCall {
 	pub id: String,
 	pub tool: ToolCallParameters
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AssistantMsg {
 	pub content: String,
 	pub tool_calls: Vec<ToolCall>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ToolResponse {
 	pub id: String,
 	pub content: String
@@ -61,7 +61,7 @@ impl Model {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum LLMMessage {
     System(String),
     User(String),

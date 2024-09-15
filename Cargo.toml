@@ -11,9 +11,10 @@ reqwest = "0.12"
 serde = "1"
 serde_json = "1"
 anyhow = "1"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 open = "5"
 rfd = "0.14"
+homedir = "0.3"
 wgui = { git = "https://github.com/J45k4/wgui.git", rev = "383408efe892eaed8e359e231760dd6b2a331686" }
 
 [dev-dependencies]

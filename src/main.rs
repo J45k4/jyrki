@@ -1,18 +1,11 @@
 use env::load_envs;
 use generated::TOOLS;
-use history::History;
 use llm::*;
 use tool::ToolExecutor;
-use types::Project;
-use types::State;
-use types::TodoItem;
-use types::ToolDef;
-use ui::ui;
-use ui::MESSAGE_INPUT;
-use ui::SELECT_PROJECT_FOLDER;
-use ui::SELECT_PROJECT_LINK;
-use ui::SEND_MESSAGE_BUTTON;
-use ui::TOOL_CHECKBOX;
+use types::*;
+use ui::*;
+use utility::get_app_dir;
+use utility::get_projects_dir;
 use std::collections::HashSet;
 use wgui::*;
 
@@ -24,9 +17,7 @@ mod tool;
 mod ui;
 mod types;
 mod generated;
-
-//pub const TOOLS_DATA: &str = include_str!("./tools.json");
-
+mod utility;
 
 struct App {
 	wgui: Wgui,
@@ -38,52 +29,10 @@ struct App {
 
 impl App {
 	pub fn new() -> App {
-		let mut project = Project {
-			input_token_cost: 0.0,
-			output_token_cost: 0.0,
-			input_token_count: 0,
-			output_token_count: 0,
-			instructions: "THIS is your instructions for the project".to_string(),
-			todo_items: vec![
-				TodoItem {
-					text: "Do this thing".to_string(),
-					done: false,
-				},
-				TodoItem {
-					text: "Do that thing".to_string(),
-					done: true,
-				},
-			],
-			current_msg: "".to_string(),
-			history: History::new(),
-			activated_tools: TOOLS.to_vec(),
-			disallowed_files: vec!["secret.txt".to_string()],
-			folder_path: "".to_string(),
-			// items: vec![
-			//     ConversationItem::AssistantMessage(vec!["Hello".to_string()]),
-			//     ConversationItem::UserMessage(vec!["Hi".to_string()]),
-			//     ConversationItem::ToolUses(vec![
-			//         Tool::WriteFile,
-			//         Tool::ReadFile,
-			//         Tool::ListFolderContents,
-			//     ]),
-			//     ConversationItem::AssistantMessage(vec!["Goodbye".to_string()]),
-			// ],
-		};
-
-		// for i in 0..200 {
-		// 	project.history.add_message(LLMMessage::User(format!("Hi {}", i)));
-		// }
+		let project = Project::default();
 
 		let mut state = State::new();
 		state.projects.push(project);
-
-		// let tooldef = ToolDef::Function { 
-		// 	name: "read_file".to_string(), 
-		// 	description: "Reads a file".to_string(), 
-		// 	parameters: 
-		// };
-		open::that("http://localhost:7765").unwrap();
 
 		App {
 			wgui: Wgui::new("0.0.0.0:7765".parse().unwrap()),
@@ -102,6 +51,31 @@ impl App {
 		}
 	}
 
+	fn send_message(&mut self) {
+		let project = self.state.projects.get_mut(0).unwrap();
+		project.history.add_message(LLMMessage::User(self.state.current_msg.clone()));
+		self.state.current_msg.clear();
+		let messages = project.history.get_context();
+		let req = GenRequest {
+			model: Model::GPT4OMini,
+			messages,
+			tools: TOOLS.iter()
+				.filter(|tool| project.activated_tools.contains(tool))
+				.cloned().collect(),
+		};
+
+		self.llm_client.gen(req);
+	}
+
+	fn get_active_project(&mut self) -> Option<&mut Project> {
+		let active_project = match self.state.active_project {
+			Some(inx) => inx,
+			None => return None,
+		};
+
+		self.state.projects.get_mut(active_project)
+	}
+
 	async fn handle_event(&mut self, event: ClientEvent) {
 		match event {
 			ClientEvent::Disconnected { id } => {
@@ -112,23 +86,11 @@ impl App {
 			}
 			ClientEvent::OnClick(o) => match o.id {
 				SELECT_PROJECT_LINK => {
-					self.state.active_project = Some(0);
+					self.state.active_project = Some(o.inx.unwrap() as usize);
 				}
 				SEND_MESSAGE_BUTTON => {
 					log::info!("Send message button clicked");
-					let project = self.state.projects.get_mut(0).unwrap();
-					project.history.add_message(LLMMessage::User(self.state.current_msg.clone()));
-					self.state.current_msg.clear();
-					let messages = project.history.get_context();
-					let req = GenRequest {
-						model: Model::GPT4OMini,
-						messages,
-						tools: TOOLS.iter()
-							.filter(|tool| project.activated_tools.contains(tool))
-							.cloned().collect(),
-					};
-
-					self.llm_client.gen(req);
+					self.send_message();
 				}
 				TOOL_CHECKBOX => {
 					let project = self.state.projects.get_mut(0).unwrap();
@@ -153,11 +115,29 @@ impl App {
 						}
 					}
 				}
+				NEW_PROJECT_BUTTON => {
+					let project = Project::default();
+					self.state.projects.push(project);
+				}
+				SAVE_PRJECT_BUTTON => {
+					if let Some(project) = self.get_active_project() {
+						let save_path = get_projects_dir().join(format!("{}.json", project.name));
+						let content = serde_json::to_string_pretty(project).unwrap();
+						tokio::fs::write(save_path, content).await.unwrap();
+						project.modified = false;
+					}
+				}
 				_ => {}
 			},
 			ClientEvent::OnTextChanged(t) => match t.id {
 				MESSAGE_INPUT => {
 					self.state.current_msg = t.value;
+				}
+				PROJECT_NAME_INPUT => {
+					if let Some(active_project) = self.state.active_project {
+						let project = self.state.projects.get_mut(active_project).unwrap();
+						project.name = t.value;
+					}
 				}
 				_ => {}
 			},

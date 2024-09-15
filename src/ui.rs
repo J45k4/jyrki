@@ -13,6 +13,9 @@ pub const SEND_MESSAGE_BUTTON: u32 = 2;
 pub const MESSAGE_INPUT: u32 = 3;
 pub const TOOL_CHECKBOX: u32 = 4;
 pub const SELECT_PROJECT_FOLDER: u32 = 5;
+pub const NEW_PROJECT_BUTTON: u32 = 6;
+pub const PROJECT_NAME_INPUT: u32 = 7;
+pub const SAVE_PRJECT_BUTTON: u32 = 8;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -154,7 +157,7 @@ fn project_view(project: &Project, state: &State) -> Item {
 					option("gpt-4o-mini", "gpt-4o-mini"),
 					option("gpt-4o", "gpt-4o"),
 				]),
-			]).spacing(5),
+			]).spacing(5).height(35),
 			vstack(project.history.items.iter().map(|item| {
 				hstack([
 					match &item.content {
@@ -186,10 +189,22 @@ fn project_view(project: &Project, state: &State) -> Item {
 			.overflow("auto"),
 			send_message_view(&state.current_msg),
 		])
-		.spacing(10),
-		// .grow(1),
+		.spacing(10)
+		.grow(1),
 		vstack([
+			if project.modified {
+				button("Save").id(SAVE_PRJECT_BUTTON)
+			} else {
+				text("Saved")
+			},
 			tokens_view(project),
+			vstack([
+				text("Info"),
+				hstack([
+					text("Name: "),
+					text_input().svalue(&project.name).id(PROJECT_NAME_INPUT),
+				]).spacing(10)
+			]).border("1px solid black").padding(5),
 			vstack([
 				text("Project folder"),
 				text(&project.folder_path),
@@ -212,7 +227,16 @@ fn nav_item(t: &str) -> Item {
 }
 
 fn projects_tabs(state: &State) -> Item {
-	hstack([nav_item("project 1")]).spacing(10)
+	hstack([
+		hstack(
+			state.projects.iter().enumerate().map(|(inx, project)| {
+				let modified = if project.modified { "*" } else { "" };
+				nav_item(&format!("{} {}", project.name, modified))
+					.inx(inx as u32)
+			})
+		).spacing(10),
+		button("New").id(NEW_PROJECT_BUTTON)
+	]).spacing(10).overflow("auto")
 }
 
 pub fn ui(state: &State) -> Item {

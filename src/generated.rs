@@ -1,5 +1,5 @@
 
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Tool {
 	ReadFile,
 	WriteFile,
@@ -134,7 +134,7 @@ pub struct FindInFile {
 	pub path: String,
 	pub pattern: String,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ToolCallParameters {
 	ReadFile(ReadFile),
 	WriteFile(WriteFile),

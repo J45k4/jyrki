@@ -2,13 +2,13 @@ use chrono::DateTime;
 use chrono::Utc;
 use crate::LLMMessage;
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct HistoryItem {
 	pub timestamp: DateTime<Utc>,
 	pub content: LLMMessage,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct History {
 	pub items: Vec<HistoryItem>,
 }

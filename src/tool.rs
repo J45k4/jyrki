@@ -15,87 +15,6 @@ use tokio::io::AsyncWriteExt;
 
 use crate::generated::ToolCallParameters;
 
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct WriteFile {
-// 	pub path: String,
-// 	pub content: String,
-// 	pub linenumber: u32
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct ReadFile {
-// 	pub path: String,
-// 	pub start_line_number: u32,
-// 	pub linenumber_count: u32
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct RemoveFile {
-// 	pub path: String
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct ListFolderContents {
-// 	pub path: String
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct CreateTodoItem {
-// 	pub name: String,
-// 	pub text: String
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct CompleteTodoItem {
-// 	pub name: String
-// }
-
-// #[derive(Debug, Deserialize, Serialize, Clone)]
-// pub struct FindText {
-// 	pub text: String,
-// 	pub path: String
-// }
-
-// #[derive(Debug, Clone, Tool)]
-// pub enum Tool {
-//     #[tool(name = "write_file", description = "Write content to a file.")]
-//     WriteFile(WriteFile),
-//     #[tool(name = "read_file", description = "Read content from a file.")]
-//     ReadFile(ReadFile),
-//     #[tool(name = "remove_file", description = "Remove a file from the filesystem.")]
-//     RemoveFile(RemoveFile),
-//     #[tool(name = "list_folder_contents", description = "List contents of a folder.")]
-//     ListFolderContents(ListFolderContents),
-//     #[tool(name = "create_todo_item", description = "Create a new to-do item.")]
-//     CreateTodoItem(CreateTodoItem),
-//     #[tool(name = "complete_todo_item", description = "Mark a to-do item as complete.")]
-//     CompleteTodoItem(CompleteTodoItem),
-//     #[tool(name = "find_text", description = "Find text within a file or directory.")]
-//     FindText(FindText),
-// }
-
-// impl Tool {
-//     pub fn parse(name: &str, args: &str) -> anyhow::Result<Tool> {
-//         println!("Parsing tool: {} with args: {}", name, args);
-
-//         // First, parse the args from a JSON string into a serde_json::Value
-//         let args_value: serde_json::Value = serde_json::from_str(args)?;
-
-//         // Now, match the tool name and deserialize the args_value into the appropriate type
-//         let tool = match name {
-//             "write_file" => Tool::WriteFile(serde_json::from_value(args_value)?),
-//             "read_file" => Tool::ReadFile(serde_json::from_value(args_value)?),
-//             "list_folder_contents" => Tool::ListFolderContents(serde_json::from_value(args_value)?),
-//             "create_folder" => Tool::CreateTodoItem(serde_json::from_value(args_value)?),
-//             "delete_folder" => Tool::CompleteTodoItem(serde_json::from_value(args_value)?),
-//             "find_text" => Tool::FindText(serde_json::from_value(args_value)?),
-//             "remove_file" => Tool::RemoveFile(serde_json::from_value(args_value)?),
-// 			_ => return Err(anyhow::anyhow!("Unknown tool name: {}", name)),
-//         };
-
-//         Ok(tool)
-//     }
-// }
 pub struct ToolExecutor {
 	forbidden_files: Vec<String>,
 	base_path: String,
@@ -197,10 +116,4 @@ impl ToolExecutor {
 	pub async fn get_result(&mut self) {
 
 	} 
-}
-
-pub fn get_tools() {
-	// let readFile = WriteFile {
-	// 	path
-	// }
 }

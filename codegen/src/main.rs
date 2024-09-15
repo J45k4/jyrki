@@ -122,7 +122,7 @@ pub fn main() {
 
 	// println!("Tool definitions: {:#?}", tool_defs);
 
-	let tool_enum = format!("#[derive(Debug, Clone, PartialEq)]\npub enum Tool {{\n{}\n}}", tool_defs.iter().map(|tool| {
+	let tool_enum = format!("#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]\npub enum Tool {{\n{}\n}}", tool_defs.iter().map(|tool| {
 		format!("\t{}", snake_to_pascal_case(&tool.name))
 	}).collect::<Vec<String>>().join(",\n"));
 
@@ -237,7 +237,7 @@ pub struct {} {{
 	let code = format!(r#"
 {}
 {}
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ToolCallParameters {{
 	{}
 }}
