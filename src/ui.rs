@@ -93,7 +93,7 @@ fn forbidden_files(project: &Project) -> Item {
 		text("Forbidden files"),
 		vstack(project.forbidden_files.iter().enumerate().map(|(inx, file)| {
 			hstack([
-				text(file),
+				text(file).grow(1),
 				button("delete").id(DELETE_FORBIDDEN_FILE_BUTTON).inx(inx as u32),
 			])
 		})),
@@ -109,8 +109,8 @@ fn forbidden_files(project: &Project) -> Item {
 
 fn send_message_view(msg: &str) -> Item {
 	hstack([
-		textarea().placeholder("Message").grow(1).id(MESSAGE_INPUT).svalue(msg).min_height(35),
-		button("Send").id(SEND_MESSAGE_BUTTON),
+		textarea().placeholder("Message").grow(1).id(MESSAGE_INPUT).svalue(msg).min_height(35).svalue(msg),
+		button("Send").id(SEND_MESSAGE_BUTTON).max_height(50)
 	])
 	.spacing(5)
 }
