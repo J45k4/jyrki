@@ -49,13 +49,13 @@ jobs:
         id: create_release
         run: |
           echo "Creating release..."
-          VERSION=$(grep '^version' Cargo.toml | head -n1 | cut -d '"' -f2)
+          VERSION="${{ github.ref_name }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
-        if: github.ref_type == 'tag' && steps.create_release.outputs.version
+        if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.create_release.outputs.version }}
