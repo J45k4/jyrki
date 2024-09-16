@@ -1,0 +1,47 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Build
+        run: |
+          cargo build --release
+
+      - name: Test
+        run: |
+          cargo test
+
+      - name: Create Release
+        id: create_release
+        run: |
+          echo "Creating release..."
+          VERSION=$(cat Cargo.toml | grep 'version' | cut -d '"' -f 2)
+          echo "::set-output name=version::$VERSION"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag: ${{ steps.create_release.outputs.version }}
+          files: target/release/my_project_binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
