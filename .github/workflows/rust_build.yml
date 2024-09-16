@@ -11,7 +11,7 @@ on:
       - master
 
 permissions:
-  contents: write  # Needed for creating releases
+  contents: write  # Required for creating releases
 
 jobs:
   build:
@@ -19,7 +19,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        # Optionally, you can add more configurations here
 
     steps:
       # 1. Checkout the repository with full history
@@ -30,11 +29,9 @@ jobs:
 
       # 2. Set up Rust toolchain
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rust-version: stable  # Use the stable Rust toolchain
-          cargo-cache: true     # Enable caching for Cargo dependencies
-          # Optionally, specify a specific toolchain if needed
+          rustflags: -A unused_imports
 
       # 3. Build the project in release mode
       - name: Build
@@ -51,29 +48,27 @@ jobs:
           # Determine the binary name and extension based on OS
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             BINARY_NAME="puppycoder.exe"
+            ARCHIVE_NAME="puppycoder-${{ github.ref_name }}-windows.zip"
+            Compress_Command="Compress-Archive -Path target/release/${BINARY_NAME} -DestinationPath ${ARCHIVE_NAME}"
+            pwsh -Command $Compress_Command
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            BINARY_NAME="puppycoder"
+            ARCHIVE_NAME="puppycoder-${{ github.ref_name }}-macos.tar.gz"
+            tar -czf ${ARCHIVE_NAME} -C target/release ${BINARY_NAME}
           else
             BINARY_NAME="puppycoder"
+            ARCHIVE_NAME="puppycoder-${{ github.ref_name }}-linux.tar.gz"
+            tar -czf ${ARCHIVE_NAME} -C target/release ${BINARY_NAME}
           fi
 
-          # Define the path to the built binary
-          BINARY_PATH="target/release/${BINARY_NAME}"
-
-          # Verify that the binary exists
-          if [ ! -f "$BINARY_PATH" ]; then
-            echo "Error: Binary $BINARY_PATH not found!"
+          # Verify that the archive exists
+          if [ ! -f "${ARCHIVE_NAME}" ]; then
+            echo "Error: Archive ${ARCHIVE_NAME} not found!"
             exit 1
           fi
 
-          # Compress the binary for better release artifact management
-          # Optional: Compress as .zip on Windows and .tar.gz on Unix-based systems
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            Compress_Command="Compress-Archive -Path $BINARY_PATH -DestinationPath puppycoder-${{ github.ref_name }}-windows.zip"
-            pwsh -Command $Compress_Command
-            echo "artifact_path=puppycoder-${{ github.ref_name }}-windows.zip" >> $GITHUB_OUTPUT
-          else
-            tar -czf puppycoder-${{ github.ref_name }}-${{ matrix.os }}.tar.gz -C target/release $BINARY_NAME
-            echo "artifact_path=puppycoder-${{ github.ref_name }}-${{ matrix.os }}.tar.gz" >> $GITHUB_OUTPUT
-          fi
+          # Set the artifact path
+          echo "artifact_path=${ARCHIVE_NAME}" >> $GITHUB_OUTPUT
 
       # 6. Upload the packaged binary as an artifact
       - name: Upload Artifact
@@ -84,9 +79,8 @@ jobs:
 
   release:
     needs: build
-    runs-on: ubuntu-latest  # Can be any OS; release creation doesn't depend on a specific OS
-    if: startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/tags/' + github.ref_name  # Ensure it's a tag push
-
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')  # Corrected condition
     steps:
       # 1. Checkout the repository (optional, depending on the release action used)
       - name: Checkout code
@@ -94,26 +88,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2. Download artifacts from all build jobs
-      - name: Download Artifacts
+      # 2. Download all artifacts
+      - name: Download Linux Artifact
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-ubuntu-latest
-          path: artifacts/
-      
-      - name: Download Artifacts (Windows)
+          path: artifacts/linux/
+
+      - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-windows-latest
-          path: artifacts/
-      
-      - name: Download Artifacts (macOS)
+          path: artifacts/windows/
+
+      - name: Download macOS Artifact
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-macos-latest
-          path: artifacts/
+          path: artifacts/macos/
 
-      # 3. Create GitHub Release with all binaries
+      # 3. Create GitHub Release
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -131,7 +125,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-linux.tar.gz
-          path: artifacts/puppycoder-${{ github.ref_name }}-ubuntu-latest.tar.gz
+          path: artifacts/linux/puppycoder-${{ github.ref_name }}-linux.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -140,7 +134,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-windows.zip
-          path: artifacts/puppycoder-${{ github.ref_name }}-windows.zip
+          path: artifacts/windows/puppycoder-${{ github.ref_name }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -149,6 +143,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-macos.tar.gz
-          path: artifacts/puppycoder-${{ github.ref_name }}-macos-latest.tar.gz
+          path: artifacts/macos/puppycoder-${{ github.ref_name }}-macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
