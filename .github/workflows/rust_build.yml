@@ -27,24 +27,24 @@ jobs:
         run: cargo build --release
       - name: Test
         run: cargo test
-      - name: Determine if tag is on master
-        id: is_tag_on_master
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "This is a tag event."
-            TAG_COMMIT_SHA=${{ github.sha }}
-            echo "Tag commit SHA: $TAG_COMMIT_SHA"
+    #   - name: Determine if tag is on master
+    #     id: is_tag_on_master
+    #     run: |
+    #       if [[ "${{ github.ref_type }}" == "tag" ]]; then
+    #         echo "This is a tag event."
+    #         TAG_COMMIT_SHA=${{ github.sha }}
+    #         echo "Tag commit SHA: $TAG_COMMIT_SHA"
 
-            # Check if the tag commit is part of the master branch
-            if git branch -r --contains "$TAG_COMMIT_SHA" | grep -w "origin/master"; then
-              echo "on_master=true" >> $GITHUB_OUTPUT
-            else
-              echo "on_master=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "This is not a tag event."
-            echo "on_master=false" >> $GITHUB_OUTPUT
-          fi
+    #         # Check if the tag commit is part of the master branch
+    #         if git branch -r --contains "$TAG_COMMIT_SHA" | grep -w "origin/master"; then
+    #           echo "on_master=true" >> $GITHUB_OUTPUT
+    #         else
+    #           echo "on_master=false" >> $GITHUB_OUTPUT
+    #         fi
+    #       else
+    #         echo "This is not a tag event."
+    #         echo "on_master=false" >> $GITHUB_OUTPUT
+    #       fi
       - name: Create Release
         if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
         id: create_release
