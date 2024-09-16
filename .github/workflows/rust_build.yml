@@ -3,10 +3,12 @@ name: Rust CI
 on:
   push:
     branches:
-      - master
+      - '**'  # Match all branches
+    tags:
+      - '*'   # Match all tags
   pull_request:
     branches:
-      - master
+      - '**'  # Match all branches
 
 jobs:
   build:
@@ -19,29 +21,44 @@ jobs:
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-            rustflags: -A unused_imports
+          rustflags: -A unused_imports
 
       - name: Build
-        run: |
-          cargo build --release
+        run: cargo build --release
 
       - name: Test
+        run: cargo test
+
+      - name: Determine if tag is on master
+        id: is_tag_on_master
         run: |
-          cargo test
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "Checking if the tag is on master..."
+            git fetch origin master
+            if git merge-base --is-ancestor ${{ github.sha }} origin/master; then
+              echo "on_master=true" >> $GITHUB_OUTPUT
+            else
+              echo "on_master=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "on_master=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release
+        if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
         id: create_release
         run: |
           echo "Creating release..."
-          VERSION=$(cat Cargo.toml | grep 'version' | cut -d '"' -f 2)
-          echo "::set-output name=version::$VERSION"
+          VERSION=$(grep '^version' Cargo.toml | head -n1 | cut -d '"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Assets
+        if: github.ref_type == 'tag' && steps.create_release.outputs.version
         uses: softprops/action-gh-release@v1
         with:
-          tag: ${{ steps.create_release.outputs.version }}
+          tag_name: ${{ steps.create_release.outputs.version }}
           files: target/release/my_project_binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
