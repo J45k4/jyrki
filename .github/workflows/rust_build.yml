@@ -18,10 +18,12 @@ jobs:
 
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+            rustflags: -A unused_imports
 
       - name: Build
         run: |
-          cargo build --release -D warnings --allow unused-imports --allow unused-variables
+          cargo build --release
 
       - name: Test
         run: |
