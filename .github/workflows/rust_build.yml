@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history to ensure all branches and tags are available
 
-      # 2. Cache Cargo dependencies (optional but recommended for faster builds)
+      # 2. Cache Cargo dependencies
       - name: Cache Cargo registry
         uses: actions/cache@v3
         with:
@@ -44,11 +44,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-
 
-      # 3. Set up Rust toolchain
+      # 3. Set up Rust toolchain with rustflags
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          rustflags: -A unused_imports
+          rustflags: -A unused_imports  # Disable warnings for unused imports
 
       # 4. Build the project in release mode
       - name: Build
@@ -61,65 +61,44 @@ jobs:
       # 6. Package the binary (Windows)
       - name: Package Binary (Windows)
         if: matrix.os == 'windows-latest'
+        id: package_windows
         shell: pwsh
         run: |
-          # Define binary and archive names
           $binaryName = "puppycoder.exe"
           $archiveName = "puppycoder-${{ github.ref_name }}-windows.zip"
-
-          # Define paths
           $binaryPath = "target/release/$binaryName"
-          $archivePath = $archiveName
+          Compress-Archive -Path $binaryPath -DestinationPath $archiveName -Force
+          Write-Output "artifact_path=$archiveName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
 
-          # Verify that the binary exists
-          if (!(Test-Path $binaryPath)) {
-            Write-Error "Binary $binaryPath not found!"
-            exit 1
-          }
-
-          # Compress the binary into a ZIP archive
-          Compress-Archive -Path $binaryPath -DestinationPath $archivePath -Force
-
-          # Output the artifact path
-          echo "artifact_path=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-
-      # 7. Package the binary (macOS and Linux)
+      # 7. Package the binary (Unix)
       - name: Package Binary (Unix)
         if: matrix.os != 'windows-latest'
+        id: package_unix
         run: |
-          # Determine OS-specific variables
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             ARCHIVE_SUFFIX="macos.tar.gz"
           else
             ARCHIVE_SUFFIX="linux.tar.gz"
           fi
-
-          # Define binary and archive names
           BINARY_NAME="puppycoder"
           ARCHIVE_NAME="puppycoder-${{ github.ref_name }}-${ARCHIVE_SUFFIX}"
-
-          # Define paths
-          BINARY_PATH="target/release/${BINARY_NAME}"
-          ARCHIVE_PATH="${ARCHIVE_NAME}"
-
-          # Verify that the binary exists
-          if [ ! -f "$BINARY_PATH" ]; then
-            echo "Error: Binary $BINARY_PATH not found!"
-            exit 1
-          fi
-
-          # Compress the binary into a tar.gz archive
-          tar -czf "$ARCHIVE_PATH" -C target/release "$BINARY_NAME"
-
-          # Output the artifact path
-          echo "artifact_path=$ARCHIVE_PATH" >> $GITHUB_OUTPUT
+          tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
+          echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
       # 8. Upload the packaged binary as an artifact
-      - name: Upload Artifact
+      - name: Upload Artifact (Windows)
+        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
           name: puppycoder-${{ matrix.os }}
-          path: ${{ steps.package.outputs.artifact_path }}
+          path: ${{ steps.package_windows.outputs.artifact_path }}
+
+      - name: Upload Artifact (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: puppycoder-${{ matrix.os }}
+          path: ${{ steps.package_unix.outputs.artifact_path }}
 
   release:
     needs: build
@@ -127,7 +106,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')  # Ensure it's a tag push
 
     steps:
-      # 1. Checkout the repository (optional, depending on the release action used)
+      # 1. Checkout the repository (optional)
       - name: Checkout code
         uses: actions/checkout@v3
         with:
@@ -135,21 +114,18 @@ jobs:
 
       # 2. Download all artifacts from build jobs
       - name: Download Linux Artifact
-        if: matrix.os == 'ubuntu-latest'
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-ubuntu-latest
           path: artifacts/linux/
 
       - name: Download Windows Artifact
-        if: matrix.os == 'windows-latest'
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-windows-latest
           path: artifacts/windows/
 
       - name: Download macOS Artifact
-        if: matrix.os == 'macos-latest'
         uses: actions/download-artifact@v3
         with:
           name: puppycoder-macos-latest
@@ -169,33 +145,30 @@ jobs:
 
       # 4. Upload Release Assets (Linux)
       - name: Upload Release Asset (Linux)
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-linux.tar.gz
-          path: artifacts/linux/puppycoder-${{ github.ref_name }}-linux.tar.gz
+          files: artifacts/linux/puppycoder-${{ github.ref_name }}-linux.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 5. Upload Release Asset (Windows)
       - name: Upload Release Asset (Windows)
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-windows.zip
-          path: artifacts/windows/puppycoder-${{ github.ref_name }}-windows.zip
+          files: artifacts/windows/puppycoder-${{ github.ref_name }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 6. Upload Release Asset (macOS)
       - name: Upload Release Asset (macOS)
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: puppycoder-${{ github.ref_name }}-macos.tar.gz
-          path: artifacts/macos/puppycoder-${{ github.ref_name }}-macos.tar.gz
+          files: artifacts/macos/puppycoder-${{ github.ref_name }}-macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
