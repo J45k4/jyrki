@@ -3,12 +3,12 @@ name: Rust CI
 on:
   push:
     branches:
-      - '**'  # Match all branches
+      - '**'  # Trigger on all branches
     tags:
-      - '*'   # Match all tags
+      - '*'   # Trigger on all tags
   pull_request:
     branches:
-      - '**'  # Match all branches
+      - '**'  # Trigger on all pull requests
 
 jobs:
   build:
@@ -16,34 +16,35 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history to ensure all branches and tags are available
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           rustflags: -A unused_imports
-
       - name: Build
         run: cargo build --release
-
       - name: Test
         run: cargo test
-
       - name: Determine if tag is on master
         id: is_tag_on_master
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "Checking if the tag is on master..."
-            git fetch origin master
-            if git merge-base --is-ancestor ${{ github.sha }} origin/master; then
+            echo "This is a tag event."
+            TAG_COMMIT_SHA=${{ github.sha }}
+            echo "Tag commit SHA: $TAG_COMMIT_SHA"
+
+            # Check if the tag commit is part of the master branch
+            if git branch -r --contains "$TAG_COMMIT_SHA" | grep -w "origin/master"; then
               echo "on_master=true" >> $GITHUB_OUTPUT
             else
               echo "on_master=false" >> $GITHUB_OUTPUT
             fi
           else
+            echo "This is not a tag event."
             echo "on_master=false" >> $GITHUB_OUTPUT
           fi
-
       - name: Create Release
         if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
         id: create_release
@@ -53,12 +54,11 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload Release Assets
         if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.create_release.outputs.version }}
-          files: target/release/my_project_binary
+          files: target/release/puppycoder
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
