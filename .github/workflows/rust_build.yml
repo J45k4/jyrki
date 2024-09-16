@@ -1,68 +1,154 @@
-name: Rust CI
+name: Rust CI/CD
 
 on:
   push:
     branches:
-      - '**'  # Trigger on all branches
+      - master
     tags:
-      - '*'   # Trigger on all tags
+      - '*'   # Trigger on all tag pushes
   pull_request:
     branches:
-      - '**'  # Trigger on all pull requests
+      - master
 
 permissions:
-  contents: write
-  id-token: write
+  contents: write  # Needed for creating releases
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Optionally, you can add more configurations here
 
     steps:
+      # 1. Checkout the repository with full history
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Fetch all history to ensure all branches and tags are available
+
+      # 2. Set up Rust toolchain
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust@v1
         with:
-          rustflags: -A unused_imports
+          rust-version: stable  # Use the stable Rust toolchain
+          cargo-cache: true     # Enable caching for Cargo dependencies
+          # Optionally, specify a specific toolchain if needed
+
+      # 3. Build the project in release mode
       - name: Build
         run: cargo build --release
-      - name: Test
-        run: cargo test
-    #   - name: Determine if tag is on master
-    #     id: is_tag_on_master
-    #     run: |
-    #       if [[ "${{ github.ref_type }}" == "tag" ]]; then
-    #         echo "This is a tag event."
-    #         TAG_COMMIT_SHA=${{ github.sha }}
-    #         echo "Tag commit SHA: $TAG_COMMIT_SHA"
 
-    #         # Check if the tag commit is part of the master branch
-    #         if git branch -r --contains "$TAG_COMMIT_SHA" | grep -w "origin/master"; then
-    #           echo "on_master=true" >> $GITHUB_OUTPUT
-    #         else
-    #           echo "on_master=false" >> $GITHUB_OUTPUT
-    #         fi
-    #       else
-    #         echo "This is not a tag event."
-    #         echo "on_master=false" >> $GITHUB_OUTPUT
-    #       fi
-      - name: Create Release
-        # if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
-        id: create_release
+      # 4. Run tests
+      - name: Test
+        run: cargo test --release
+
+      # 5. Package the binary
+      - name: Package Binary
+        id: package
         run: |
-          echo "Creating release..."
-          VERSION="${{ github.ref_name }}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Release Assets
-        # if: github.ref_type == 'tag' && steps.is_tag_on_master.outputs.on_master == 'true'
+          # Determine the binary name and extension based on OS
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            BINARY_NAME="puppycoder.exe"
+          else
+            BINARY_NAME="puppycoder"
+          fi
+
+          # Define the path to the built binary
+          BINARY_PATH="target/release/${BINARY_NAME}"
+
+          # Verify that the binary exists
+          if [ ! -f "$BINARY_PATH" ]; then
+            echo "Error: Binary $BINARY_PATH not found!"
+            exit 1
+          fi
+
+          # Compress the binary for better release artifact management
+          # Optional: Compress as .zip on Windows and .tar.gz on Unix-based systems
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            Compress_Command="Compress-Archive -Path $BINARY_PATH -DestinationPath puppycoder-${{ github.ref_name }}-windows.zip"
+            pwsh -Command $Compress_Command
+            echo "artifact_path=puppycoder-${{ github.ref_name }}-windows.zip" >> $GITHUB_OUTPUT
+          else
+            tar -czf puppycoder-${{ github.ref_name }}-${{ matrix.os }}.tar.gz -C target/release $BINARY_NAME
+            echo "artifact_path=puppycoder-${{ github.ref_name }}-${{ matrix.os }}.tar.gz" >> $GITHUB_OUTPUT
+          fi
+
+      # 6. Upload the packaged binary as an artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: puppycoder-${{ matrix.os }}
+          path: ${{ steps.package.outputs.artifact_path }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest  # Can be any OS; release creation doesn't depend on a specific OS
+    if: startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/tags/' + github.ref_name  # Ensure it's a tag push
+
+    steps:
+      # 1. Checkout the repository (optional, depending on the release action used)
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # 2. Download artifacts from all build jobs
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: puppycoder-ubuntu-latest
+          path: artifacts/
+      
+      - name: Download Artifacts (Windows)
+        uses: actions/download-artifact@v3
+        with:
+          name: puppycoder-windows-latest
+          path: artifacts/
+      
+      - name: Download Artifacts (macOS)
+        uses: actions/download-artifact@v3
+        with:
+          name: puppycoder-macos-latest
+          path: artifacts/
+
+      # 3. Create GitHub Release with all binaries
+      - name: Create GitHub Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.create_release.outputs.version }}
-          files: target/release/puppycoder
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. Upload Release Assets
+      - name: Upload Release Asset (Linux)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: puppycoder-${{ github.ref_name }}-linux.tar.gz
+          path: artifacts/puppycoder-${{ github.ref_name }}-ubuntu-latest.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset (Windows)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: puppycoder-${{ github.ref_name }}-windows.zip
+          path: artifacts/puppycoder-${{ github.ref_name }}-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset (macOS)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: puppycoder-${{ github.ref_name }}-macos.tar.gz
+          path: artifacts/puppycoder-${{ github.ref_name }}-macos-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
