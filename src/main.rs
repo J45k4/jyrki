@@ -6,6 +6,8 @@ use ui::*;
 use utility::get_projects_dir;
 use std::collections::HashSet;
 use std::fs::read_dir;
+use std::io;
+use std::net::TcpListener;
 use wgui::*;
 
 mod llm;
@@ -26,14 +28,14 @@ struct App {
 }
 
 impl App {
-	pub fn new(projects: Vec<Project>) -> App {
+	pub fn new(projects: Vec<Project>, port: u16) -> App {
 		let state = State {
 			projects,
 			..Default::default()
 		};
 
 		App {
-			wgui: Wgui::new("0.0.0.0:7765".parse().unwrap()),
+			wgui: Wgui::new(format!("127.0.0.1:{}", port).parse().unwrap()),
 			clients: HashSet::new(),
 			state,
 			llm_client: LLMClient::new(),
@@ -277,6 +279,31 @@ impl App {
 	}
 }
 
+fn find_first_free_port(start_port: u16, end_port: u16) -> Option<u16> {
+    for port in start_port..=end_port {
+        match TcpListener::bind(("127.0.0.1", port)) {
+            Ok(listener) => {
+                // Successfully bound to the port, so it's free.
+                // Drop the listener to release the port.
+                drop(listener);
+                return Some(port);
+            }
+            Err(e) => {
+                if e.kind() == io::ErrorKind::AddrInUse {
+                    // Port is in use; try the next one.
+                    continue;
+                } else {
+                    // Handle other errors (e.g., permission denied).
+                    eprintln!("Failed to bind to port {}: {}", port, e);
+                    continue;
+                }
+            }
+        }
+    }
+    // No free port found in the specified range.
+    None
+}
+
 #[tokio::main]
 async fn main() {
 	simple_logger::init_with_level(log::Level::Info).unwrap();
@@ -296,6 +323,6 @@ async fn main() {
 			}
 		})
 		.collect();
-
-	App::new(projects).run().await;
+	let port = find_first_free_port(7760, 7780).unwrap();
+	App::new(projects, port).run().await;
 }
