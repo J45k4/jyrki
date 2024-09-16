@@ -109,11 +109,10 @@ fn forbidden_files(project: &Project) -> Item {
 
 fn send_message_view(msg: &str) -> Item {
 	hstack([
-		text_input().placeholder("Message").grow(1).id(MESSAGE_INPUT).svalue(msg),
+		textarea().placeholder("Message").grow(1).id(MESSAGE_INPUT).svalue(msg).min_height(35),
 		button("Send").id(SEND_MESSAGE_BUTTON),
 	])
 	.spacing(5)
-	.height(35)
 }
 
 fn multile_text(t: &str) -> Item {
@@ -132,7 +131,6 @@ fn multile_text(t: &str) -> Item {
 
 fn tool_call_view(tool_call: &ToolCall) -> Item {
 	vstack([
-		text(&tool_call.id),
 		match &tool_call.tool {
 			ToolCallParameters::WriteFile(w) => {
 				vstack([
@@ -174,16 +172,20 @@ fn project_view(project: &Project, state: &State) -> Item {
 	hstack([
 		vstack([
 			hstack([
-				text_input()
+				textarea()
 					.placeholder("Instructions")
 					.svalue(&project.instructions)
 					.id(INSTRUCTIONS_TEXT_INPUT)
+					.height(35)
 					.grow(1),
 				select([
 					option("gpt-4o-mini", "gpt-4o-mini"),
 					option("gpt-4o", "gpt-4o"),
-				]).svalue(project.model.to_str()).id(MODEL_SELECT),
-			]).spacing(5).height(35),
+				])
+				.svalue(project.model.to_str())
+				.id(MODEL_SELECT)
+				.max_height(35),
+			]).spacing(5),
 			send_message_view(&state.current_msg),
 			vstack(project.history.items.iter().rev().map(|item| {
 				hstack([
@@ -204,7 +206,13 @@ fn project_view(project: &Project, state: &State) -> Item {
 							])
 							.spacing(10)
 						},
-						_ => text("Unknown message type"),
+						LLMMessage::ToolResponse(res) => {
+							vstack([
+								text("ToolResponse"),
+								text(&res.content),
+							])
+							.spacing(10)
+						},
 					}
 				])
 				.padding(5)
