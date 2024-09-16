@@ -17,6 +17,12 @@ pub async fn execute(project: &Project, tool: ToolCallParameters) -> anyhow::Res
 	let res = match tool {
 		ToolCallParameters::WriteFile(w) => {
 			let path = Path::new(&project.folder_path).join(&w.path);
+			if let Some(parent_path) = path.parent() {
+				if !parent_path.exists() {
+					log::info!("parent path does not exist, creating it: {:?}", parent_path);
+					fs::create_dir_all(parent_path).await?;
+				}
+			}
 			let file_name = path.file_name().unwrap().to_str().unwrap();
 			if project.forbidden_files.contains(&file_name.to_string()) {
 				println!("File {} is forbidden", file_name);
