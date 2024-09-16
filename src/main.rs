@@ -49,10 +49,17 @@ impl App {
 	}
 
 	fn send_message(&mut self) {
-		let project = self.state.projects.get_mut(0).unwrap();
-		project.modified = true;
-		project.history.add_message(LLMMessage::User(self.state.current_msg.clone()));
+		if self.state.current_msg.is_empty() {
+			return;
+		}
+		let current_msg = self.state.current_msg.clone();
 		self.state.current_msg.clear();
+		let project = match self.get_active_project() {
+			Some(project) => project,
+			None => return,
+		};
+		project.modified = true;
+		project.history.add_message(LLMMessage::User(current_msg));
 		let mut messages = Vec::new();
 		let mut assistant_msg = String::new();
 
