@@ -10,6 +10,10 @@ on:
     branches:
       - '**'  # Trigger on all pull requests
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
