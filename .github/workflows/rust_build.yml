@@ -21,7 +21,7 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --release
+          cargo build --release -D warnings --allow unused-imports --allow unused-variables
 
       - name: Test
         run: |
