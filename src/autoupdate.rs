@@ -1,4 +1,6 @@
+use std::env::consts::OS;
 use std::fs::File;
+use std::io;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -40,20 +42,6 @@ pub async fn force_update_newest_version() {
 			}
 		})
 	}).unwrap();
-
-    // let assets = .first().unwrap()["assets"].as_array().unwrap();
-
-    // let asset = assets.iter().find(|asset| {
-    //     if OS == "windows" {
-    //         asset["name"].as_str().unwrap().contains("windows")
-    //     } else if OS == "linux" {
-    //         asset["name"].as_str().unwrap().contains("linux")
-    //     } else if OS == "macos" {
-    //         asset["name"].as_str().unwrap().contains("macos")
-    //     } else {
-    //         false
-    //     }
-    // }).unwrap();
 
 	let asset_file_name = asset["name"].as_str().unwrap();
 	log::info!("asset: {:#?}", asset);
