@@ -19,7 +19,7 @@ jobs:
   check_changes:
     runs-on: ubuntu-latest
     outputs:
-      changes: ${{ steps.check.outputs.changes }}
+      changes: ${{ steps.check_changes.outputs.changes }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
