@@ -42,7 +42,6 @@ jobs:
               echo "Changes detected."
               echo "changes=true" >> $GITHUB_OUTPUT
             fi
-        
 
   # 3. Build Job - Runs only if changes were detected
   build:
@@ -95,10 +94,14 @@ jobs:
       - name: Package Binary
         id: package
         run: |
-          BINARY_NAME="puppycoder"  # Replace with your binary name
-          ARCHIVE_NAME="puppycoder-nightly-${{ matrix.os }}.tar.gz"
-          tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
-          echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          if [ ${{ matrix.os }} = "windows-latest" ]; then
+            BINARY_NAME="puppycoder.exe"
+            tar -czf "puppycoder-nightly-${{ matrix.os }}.tar.gz" -C target/release "$BINARY_NAME"
+          else
+            BINARY_NAME="puppycoder"
+            tar -czf "puppycoder-nightly-${{ matrix.os }}.tar.gz" -C target/release "$BINARY_NAME"
+          fi
+          echo "artifact_path=puppycoder-nightly-${{ matrix.os }}.tar.gz" >> $GITHUB_OUTPUT
 
       # 3.7 Upload the packaged binary as an artifact
       - name: Upload Artifact
@@ -151,13 +154,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.4 Upload Release Assets
+      # 4.4 Upload Release Assets (Linux)
       - name: Upload Release Asset (Linux)
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
           name: puppycoder-nightly-${{ env.RELEASE_DATE }}-linux.tar.gz
-          files: artifacts/linux/puppycoder-nightly-${{ env.RELEASE_DATE }}-ubuntu-latest.tar.gz
+          files: puppycoder-nightly-ubuntu-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -166,7 +169,7 @@ jobs:
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
           name: puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.tar.gz
-          files: artifacts/windows/puppycoder-nightly-${{ env.RELEASE_DATE }}-windows-latest.tar.gz
+          files: puppycoder-nightly-windows-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -175,6 +178,6 @@ jobs:
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
           name: puppycoder-nightly-${{ env.RELEASE_DATE }}-macos.tar.gz
-          files: artifacts/macos/puppycoder-nightly-${{ env.RELEASE_DATE }}-macos-latest.tar.gz
+          files: puppycoder-nightly-macos-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
