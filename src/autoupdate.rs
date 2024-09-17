@@ -2,7 +2,6 @@ use std::env::consts::OS;
 use std::fs::File;
 use std::io;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::exit;
 
@@ -83,6 +82,7 @@ pub async fn force_update_newest_version() {
 	log::info!("current_exe: {:?}", current_exe);
     #[cfg(target_family = "unix")]
     {
+		use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&temp_file_path, std::fs::Permissions::from_mode(0o755)).unwrap();
     }
     std::fs::rename(&temp_file_path, &current_exe).unwrap(); 
