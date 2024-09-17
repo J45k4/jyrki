@@ -98,7 +98,7 @@ jobs:
         shell: pwsh
         run: |
           $binaryName = "puppycoder.exe"  # Replace with your binary name
-          $archiveName = "puppycoder-nightly-${{ github.run_number }}-windows.zip"
+          $archiveName = "puppycoder-nightly-${{ github.event.date }}-windows.zip"
           $binaryPath = "target/release/$binaryName"
           Compress-Archive -Path $binaryPath -DestinationPath $archiveName -Force
           echo "artifact_path=$archiveName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
@@ -114,7 +114,7 @@ jobs:
             ARCHIVE_SUFFIX="linux.tar.gz"
           fi
           BINARY_NAME="puppycoder"  # Replace with your binary name
-          ARCHIVE_NAME="puppycoder-nightly-${{ github.run_number }}-${ARCHIVE_SUFFIX}"
+          ARCHIVE_NAME="puppycoder-nightly-${{ github.event.date }}-${ARCHIVE_SUFFIX}"
           tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
           echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
@@ -140,7 +140,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 4.1 Download all artifacts from build jobs
+      # 4.1 Set the date for the release tag and name
+      - name: Set Release Date
+        id: set_date
+        run: echo "RELEASE_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
+
+      # 4.2 Download all artifacts from build jobs
       - name: Download Linux Artifact
         uses: actions/download-artifact@v3
         with:
@@ -159,44 +164,44 @@ jobs:
           name: puppycoder-macos-latest
           path: artifacts/macos/
 
-      # 4.2 Create GitHub Release
+      # 4.3 Create GitHub Release using current date
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: nightly-${{ github.run_number }}
-          name: Nightly Build ${{ github.run_number }}
+          tag_name: nightly-${{ env.RELEASE_DATE }}
+          name: Nightly Build ${{ env.RELEASE_DATE }}
           draft: false
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.3 Upload Release Assets (Linux)
+      # 4.4 Upload Release Assets (Linux)
       - name: Upload Release Asset (Linux)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: nightly-${{ github.run_number }}
-          name: puppycoder-nightly-${{ github.run_number }}-linux.tar.gz
-          files: artifacts/linux/puppycoder-nightly-${{ github.run_number }}-linux.tar.gz
+          tag_name: nightly-${{ env.RELEASE_DATE }}
+          name: puppycoder-nightly-${{ env.RELEASE_DATE }}-linux.tar.gz
+          files: artifacts/linux/puppycoder-nightly-${{ env.RELEASE_DATE }}-linux.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.4 Upload Release Asset (Windows)
+      # 4.5 Upload Release Asset (Windows)
       - name: Upload Release Asset (Windows)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: nightly-${{ github.run_number }}
-          name: puppycoder-nightly-${{ github.run_number }}-windows.zip
-          files: artifacts/windows/puppycoder-nightly-${{ github.run_number }}-windows.zip
+          tag_name: nightly-${{ env.RELEASE_DATE }}
+          name: puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.zip
+          files: artifacts/windows/puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.5 Upload Release Asset (macOS)
+      # 4.6 Upload Release Asset (macOS)
       - name: Upload Release Asset (macOS)
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: nightly-${{ github.run_number }}
-          name: puppycoder-nightly-${{ github.run_number }}-macos.tar.gz
-          files: artifacts/macos/puppycoder-nightly-${{ github.run_number }}-macos.tar.gz
+          tag_name: nightly-${{ env.RELEASE_DATE }}
+          name: puppycoder-nightly-${{ env.RELEASE_DATE }}-macos.tar.gz
+          files: artifacts/macos/puppycoder-nightly-${{ env.RELEASE_DATE }}-macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
