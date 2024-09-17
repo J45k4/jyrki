@@ -93,9 +93,10 @@ jobs:
 
       # 3.6 Package the binary into .tar.gz (all platforms)
       - name: Package Binary
+        id: package
         run: |
           BINARY_NAME="puppycoder"  # Replace with your binary name
-          ARCHIVE_NAME="puppycoder-nightly-${{ github.event.date }}-${{ matrix.os }}.tar.gz"
+          ARCHIVE_NAME="puppycoder-nightly-${{ matrix.os }}.tar.gz"
           tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
           echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
@@ -104,7 +105,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: puppycoder-${{ matrix.os }}
-          path: ${{ steps.package.outputs.artifact_path }}
+          path: ${{ steps.package.outputs.artifact_path }}  # Use the correct path to the artifact
+          if-no-files-found: warn
 
   # 4. Release Job - Runs only if build job succeeded
   release:
