@@ -19,6 +19,7 @@ mod ui;
 mod types;
 mod generated;
 mod utility;
+mod autoupdate;
 
 struct App {
 	wgui: Wgui,
