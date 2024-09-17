@@ -97,8 +97,8 @@ jobs:
         id: package_windows
         shell: pwsh
         run: |
-          $binaryName = "your_binary.exe"  # Replace with your binary name
-          $archiveName = "your_binary-nightly-${{ github.run_number }}-windows.zip"
+          $binaryName = "puppycoder.exe"  # Replace with your binary name
+          $archiveName = "puppycoder-nightly-${{ github.run_number }}-windows.zip"
           $binaryPath = "target/release/$binaryName"
           Compress-Archive -Path $binaryPath -DestinationPath $archiveName -Force
           echo "artifact_path=$archiveName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
@@ -113,8 +113,8 @@ jobs:
           else
             ARCHIVE_SUFFIX="linux.tar.gz"
           fi
-          BINARY_NAME="your_binary"  # Replace with your binary name
-          ARCHIVE_NAME="your_binary-nightly-${{ github.run_number }}-${ARCHIVE_SUFFIX}"
+          BINARY_NAME="puppycoder"  # Replace with your binary name
+          ARCHIVE_NAME="puppycoder-nightly-${{ github.run_number }}-${ARCHIVE_SUFFIX}"
           tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
           echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
@@ -123,14 +123,14 @@ jobs:
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: your_binary-windows
+          name: puppycoder-windows
           path: ${{ steps.package_windows.outputs.artifact_path }}
 
       - name: Upload Artifact (Unix)
         if: matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v3
         with:
-          name: your_binary-${{ matrix.os }}
+          name: puppycoder-${{ matrix.os }}
           path: ${{ steps.package_unix.outputs.artifact_path }}
 
   # 4. Release Job - Runs only if build job succeeded
@@ -144,19 +144,19 @@ jobs:
       - name: Download Linux Artifact
         uses: actions/download-artifact@v3
         with:
-          name: your_binary-ubuntu-latest
+          name: puppycoder-ubuntu-latest
           path: artifacts/linux/
 
       - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
-          name: your_binary-windows
+          name: puppycoder-windows
           path: artifacts/windows/
 
       - name: Download macOS Artifact
         uses: actions/download-artifact@v3
         with:
-          name: your_binary-macos-latest
+          name: puppycoder-macos-latest
           path: artifacts/macos/
 
       # 4.2 Create GitHub Release
@@ -176,8 +176,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ github.run_number }}
-          name: your_binary-nightly-${{ github.run_number }}-linux.tar.gz
-          files: artifacts/linux/your_binary-nightly-${{ github.run_number }}-linux.tar.gz
+          name: puppycoder-nightly-${{ github.run_number }}-linux.tar.gz
+          files: artifacts/linux/puppycoder-nightly-${{ github.run_number }}-linux.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -186,8 +186,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ github.run_number }}
-          name: your_binary-nightly-${{ github.run_number }}-windows.zip
-          files: artifacts/windows/your_binary-nightly-${{ github.run_number }}-windows.zip
+          name: puppycoder-nightly-${{ github.run_number }}-windows.zip
+          files: artifacts/windows/puppycoder-nightly-${{ github.run_number }}-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -196,7 +196,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ github.run_number }}
-          name: your_binary-nightly-${{ github.run_number }}-macos.tar.gz
-          files: artifacts/macos/your_binary-nightly-${{ github.run_number }}-macos.tar.gz
+          name: puppycoder-nightly-${{ github.run_number }}-macos.tar.gz
+          files: artifacts/macos/puppycoder-nightly-${{ github.run_number }}-macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
