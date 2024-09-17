@@ -5,7 +5,6 @@ on:
   schedule:
     - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
 
-  # Optional: Also trigger on push or pull_request if desired
   push:
     branches:
       - master
@@ -42,7 +41,6 @@ jobs:
           else
             echo "Changes detected."
             echo "changes=true" >> $GITHUB_OUTPUT
-          fi
 
   # 3. Build Job - Runs only if changes were detected
   build:
@@ -91,47 +89,20 @@ jobs:
       - name: Test
         run: cargo test --release
 
-      # 3.6 Package the binary (Windows)
-      - name: Package Binary (Windows)
-        if: matrix.os == 'windows-latest'
-        id: package_windows
-        shell: pwsh
+      # 3.6 Package the binary into .tar.gz (all platforms)
+      - name: Package Binary
         run: |
-          $binaryName = "puppycoder.exe"  # Replace with your binary name
-          $archiveName = "puppycoder-nightly-${{ github.event.date }}-windows.zip"
-          $binaryPath = "target/release/$binaryName"
-          Compress-Archive -Path $binaryPath -DestinationPath $archiveName -Force
-          echo "artifact_path=$archiveName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
-
-      # 3.7 Package the binary (Unix)
-      - name: Package Binary (Unix)
-        if: matrix.os != 'windows-latest'
-        id: package_unix
-        run: |
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            ARCHIVE_SUFFIX="macos.tar.gz"
-          else
-            ARCHIVE_SUFFIX="linux.tar.gz"
-          fi
           BINARY_NAME="puppycoder"  # Replace with your binary name
-          ARCHIVE_NAME="puppycoder-nightly-${{ github.event.date }}-${ARCHIVE_SUFFIX}"
+          ARCHIVE_NAME="puppycoder-nightly-${{ github.event.date }}-${{ matrix.os }}.tar.gz"
           tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
           echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
 
-      # 3.8 Upload the packaged binary as an artifact
-      - name: Upload Artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
-        with:
-          name: puppycoder-windows
-          path: ${{ steps.package_windows.outputs.artifact_path }}
-
-      - name: Upload Artifact (Unix)
-        if: matrix.os != 'windows-latest'
+      # 3.7 Upload the packaged binary as an artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: puppycoder-${{ matrix.os }}
-          path: ${{ steps.package_unix.outputs.artifact_path }}
+          path: ${{ steps.package.outputs.artifact_path }}
 
   # 4. Release Job - Runs only if build job succeeded
   release:
@@ -155,7 +126,7 @@ jobs:
       - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
-          name: puppycoder-windows
+          name: puppycoder-windows-latest
           path: artifacts/windows/
 
       - name: Download macOS Artifact
@@ -176,32 +147,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.4 Upload Release Assets (Linux)
+      # 4.4 Upload Release Assets
       - name: Upload Release Asset (Linux)
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
           name: puppycoder-nightly-${{ env.RELEASE_DATE }}-linux.tar.gz
-          files: artifacts/linux/puppycoder-nightly-${{ env.RELEASE_DATE }}-linux.tar.gz
+          files: artifacts/linux/puppycoder-nightly-${{ env.RELEASE_DATE }}-ubuntu-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.5 Upload Release Asset (Windows)
       - name: Upload Release Asset (Windows)
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
-          name: puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.zip
-          files: artifacts/windows/puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.zip
+          name: puppycoder-nightly-${{ env.RELEASE_DATE }}-windows.tar.gz
+          files: artifacts/windows/puppycoder-nightly-${{ env.RELEASE_DATE }}-windows-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4.6 Upload Release Asset (macOS)
       - name: Upload Release Asset (macOS)
         uses: softprops/action-gh-release@v1
         with:
           tag_name: nightly-${{ env.RELEASE_DATE }}
           name: puppycoder-nightly-${{ env.RELEASE_DATE }}-macos.tar.gz
-          files: artifacts/macos/puppycoder-nightly-${{ env.RELEASE_DATE }}-macos.tar.gz
+          files: artifacts/macos/puppycoder-nightly-${{ env.RELEASE_DATE }}-macos-latest.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
