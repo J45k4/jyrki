@@ -1,0 +1,202 @@
+name: Nightly Build and Release
+
+# 1. Trigger the workflow every night at midnight UTC
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
+
+  # Optional: Also trigger on push or pull_request if desired
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write  # Required for creating releases
+
+jobs:
+  # 2. Job to check for changes in the last 24 hours
+  check_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.check.outputs.changes }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history to ensure all branches and tags are available
+
+      - name: Check for Changes in the Last 24 Hours
+        id: check
+        run: |
+          since=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
+          echo "Checking for commits since $since..."
+          commits=$(git log --since="$since" --pretty=oneline)
+          if [ -z "$commits" ]; then
+            echo "No changes detected."
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected."
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+  # 3. Build Job - Runs only if changes were detected
+  build:
+    needs: check_changes
+    if: needs.check_changes.outputs.changes == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      # 3.1 Checkout the repository with full history
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history
+
+      # 3.2 Cache Cargo dependencies
+      - name: Cache Cargo Registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo Build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      # 3.3 Set up Rust toolchain with rustflags
+      - name: Set Up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: -A unused_imports  # Example: Disable warnings for unused imports
+
+      # 3.4 Build the project in release mode
+      - name: Build
+        run: cargo build --release
+
+      # 3.5 Run tests
+      - name: Test
+        run: cargo test --release
+
+      # 3.6 Package the binary (Windows)
+      - name: Package Binary (Windows)
+        if: matrix.os == 'windows-latest'
+        id: package_windows
+        shell: pwsh
+        run: |
+          $binaryName = "your_binary.exe"  # Replace with your binary name
+          $archiveName = "your_binary-nightly-${{ github.run_number }}-windows.zip"
+          $binaryPath = "target/release/$binaryName"
+          Compress-Archive -Path $binaryPath -DestinationPath $archiveName -Force
+          echo "artifact_path=$archiveName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+
+      # 3.7 Package the binary (Unix)
+      - name: Package Binary (Unix)
+        if: matrix.os != 'windows-latest'
+        id: package_unix
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            ARCHIVE_SUFFIX="macos.tar.gz"
+          else
+            ARCHIVE_SUFFIX="linux.tar.gz"
+          fi
+          BINARY_NAME="your_binary"  # Replace with your binary name
+          ARCHIVE_NAME="your_binary-nightly-${{ github.run_number }}-${ARCHIVE_SUFFIX}"
+          tar -czf "$ARCHIVE_NAME" -C target/release "$BINARY_NAME"
+          echo "artifact_path=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+
+      # 3.8 Upload the packaged binary as an artifact
+      - name: Upload Artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: your_binary-windows
+          path: ${{ steps.package_windows.outputs.artifact_path }}
+
+      - name: Upload Artifact (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: your_binary-${{ matrix.os }}
+          path: ${{ steps.package_unix.outputs.artifact_path }}
+
+  # 4. Release Job - Runs only if build job succeeded
+  release:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      # 4.1 Download all artifacts from build jobs
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: your_binary-ubuntu-latest
+          path: artifacts/linux/
+
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: your_binary-windows
+          path: artifacts/windows/
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: your_binary-macos-latest
+          path: artifacts/macos/
+
+      # 4.2 Create GitHub Release
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly-${{ github.run_number }}
+          name: Nightly Build ${{ github.run_number }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4.3 Upload Release Assets (Linux)
+      - name: Upload Release Asset (Linux)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly-${{ github.run_number }}
+          name: your_binary-nightly-${{ github.run_number }}-linux.tar.gz
+          files: artifacts/linux/your_binary-nightly-${{ github.run_number }}-linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4.4 Upload Release Asset (Windows)
+      - name: Upload Release Asset (Windows)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly-${{ github.run_number }}
+          name: your_binary-nightly-${{ github.run_number }}-windows.zip
+          files: artifacts/windows/your_binary-nightly-${{ github.run_number }}-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4.5 Upload Release Asset (macOS)
+      - name: Upload Release Asset (macOS)
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: nightly-${{ github.run_number }}
+          name: your_binary-nightly-${{ github.run_number }}-macos.tar.gz
+          files: artifacts/macos/your_binary-nightly-${{ github.run_number }}-macos.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
