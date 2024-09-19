@@ -3,14 +3,6 @@ name: Nightly Build and Release
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs at 00:00 UTC every day
-  push:
-    branches:
-      - master
-    tags:
-      - '*'
-  pull_request:
-    branches:
-      - master
 
 permissions:
   contents: write  # Required for creating releases
