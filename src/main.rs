@@ -52,19 +52,21 @@ impl App {
 	}
 
 	fn send_message(&mut self) {
-		if self.state.current_msg.is_empty() {
-			return;
-		}
 		let current_msg = self.state.current_msg.clone();
 		self.state.current_msg.clear();
 		let project = match self.get_active_project() {
 			Some(project) => project,
 			None => return,
 		};
+		if !current_msg.is_empty() {
+			project.history.add_message(LLMMessage::User(current_msg));
+		}
 		project.modified = true;
-		project.history.add_message(LLMMessage::User(current_msg));
 		let mut messages = Vec::new();
 		let mut assistant_msg = String::new();
+		assistant_msg += r"You are puppycoder assistant 🐶\n 
+You are good at programming and will help users complete their programming tasks.
+You can use tools provided to you to read and write files.";
 
 		if !project.instructions.is_empty() {
 			assistant_msg += &format!("Instructions: {}\n", project.instructions);
@@ -220,6 +222,8 @@ impl App {
 					project.input_token_cost += res.promt_cost;
 					project.output_token_cost += res.completion_cost;
 					project.modified = true;
+
+					let should_continue = res.msg.tool_calls.len() > 0;
 	
 					for tool_call in res.msg.tool_calls {
 						match tool::execute(&project, tool_call.tool).await {
@@ -238,6 +242,10 @@ impl App {
 								}))
 							}
 						}
+					}
+
+					if should_continue {
+						self.send_message();
 					}
 				}
 			},
