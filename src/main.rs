@@ -32,6 +32,7 @@ impl App {
 	pub fn new(projects: Vec<Project>, port: u16) -> App {
 		let state = State {
 			projects,
+			max_conversation_turns: 5,
 			..Default::default()
 		};
 
@@ -52,6 +53,7 @@ impl App {
 	}
 
 	fn send_message(&mut self) {
+		self.state.conversation_turns = 0;
 		let current_msg = self.state.current_msg.clone();
 		self.state.current_msg.clear();
 		let project = match self.get_active_project() {
@@ -60,8 +62,16 @@ impl App {
 		};
 		if !current_msg.is_empty() {
 			project.history.add_message(LLMMessage::User(current_msg));
+			project.modified = true;
 		}
-		project.modified = true;
+		self.continue_conversation();
+	}
+
+	fn continue_conversation(&mut self) {
+		let project = match self.get_active_project() {
+			Some(project) => project,
+			None => return,
+		};
 		let mut messages = Vec::new();
 		let mut assistant_msg = String::new();
 		assistant_msg += r"You are puppycoder assistant 🐶\n 
@@ -191,6 +201,11 @@ You can use tools provided to you to read and write files.";
 				NEW_FORBIDDEN_FILE_NAME => {
 					self.state.new_forbidden_file_name = t.value;
 				}
+				MAX_CONVERSATION_TURNS => {
+					if let Ok(t) = t.value.parse::<u32>() {
+						self.state.max_conversation_turns = t;
+					}
+				}
 				_ => {}
 			},
 			ClientEvent::OnSelect(event) => {
@@ -245,7 +260,10 @@ You can use tools provided to you to read and write files.";
 					}
 
 					if should_continue {
-						self.send_message();
+						if self.state.conversation_turns < self.state.max_conversation_turns {
+							self.continue_conversation();
+						}
+						self.state.conversation_turns += 1;
 					}
 				}
 			},

@@ -41,14 +41,9 @@ pub struct State {
 	pub active_project: Option<usize>,
 	pub current_msg: String,
 	pub new_forbidden_file_name: String,
+	pub max_conversation_turns: u32,
+	pub conversation_turns: u32,
 }
-
-impl State {
-	pub fn new() -> State {
-		State::default()
-	}
-}
-
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

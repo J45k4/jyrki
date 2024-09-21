@@ -40,6 +40,7 @@ impl ChatCompletion {
 
 						Some(llm::ToolCall {
 							id: tool_call.id.clone(),
+							expanded: true,
 							tool: crate::generated::ToolCallParameters::parse(&tool_call.function.name, &tool_call.function.arguments).unwrap(),
 						})
 					}).collect(),

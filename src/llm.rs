@@ -10,6 +10,8 @@ pub const GPT_4O_MINI: &str = "gpt-4o-mini";
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ToolCall {
 	pub id: String,
+	#[serde(default)]
+	pub expanded: bool,
 	pub tool: ToolCallParameters
 }
 

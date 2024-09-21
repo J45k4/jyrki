@@ -21,6 +21,8 @@ pub const MODEL_SELECT: u32 = 10;
 pub const NEW_FORBIDDEN_FILE_NAME: u32 = 11;
 pub const NEW_FORBIDDEN_FILE_BUTTON: u32 = 12;
 pub const DELETE_FORBIDDEN_FILE_BUTTON: u32 = 13;
+pub const EXPAND_TOOL_CALL: u32 = 14;
+pub const MAX_CONVERSATION_TURNS: u32 = 15;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -134,11 +136,25 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 		match &tool_call.tool {
 			ToolCallParameters::WriteFile(w) => {
 				vstack([
-					text("WriteFile"),
-					text(&format!("path: {}", w.path)),
-					text(&format!("line number: {}", w.linenumber)),
-					multile_text(&w.content),
-				])
+					hstack([
+						text("E").cursor("pointer").id(EXPAND_TOOL_CALL),
+						text("WriteFile"),
+					]).spacing(5),
+					vstack([
+						text(&format!("path: {}", w.path)),
+						text(&format!("line number: {}", w.linenumber)),
+						multile_text(&w.content),
+					])
+					// if tool_call.expanded {
+					// 	vstack([
+					// 		text(&format!("path: {}", w.path)),
+					// 		text(&format!("line number: {}", w.linenumber)),
+					// 		multile_text(&w.content),
+					// 	])
+					// } else {
+					// 	vstack([])
+					// }
+				]).border("1px solid black").padding(5)
 			},
 			ToolCallParameters::ReadFile(r) => {
 				vstack([
@@ -200,11 +216,15 @@ fn project_view(project: &Project, state: &State) -> Item {
 						},
 						LLMMessage::Assistant(msg) => {
 							vstack([
-								text("Assistant"),
+								hstack([
+									text("Assistant").grow(1),
+									button("retry")
+								]),
 								text(&msg.content),
 								vstack(msg.tool_calls.iter().map(|tool_call| tool_call_view(tool_call))),
 							])
 							.spacing(10)
+							.grow(1)
 						},
 						LLMMessage::ToolResponse(res) => {
 							vstack([
@@ -242,6 +262,12 @@ fn project_view(project: &Project, state: &State) -> Item {
 				text("Project folder"),
 				text(&project.folder_path),
 				button("Select").id(SELECT_PROJECT_FOLDER),
+			]).border("1px solid black").padding(5),
+			vstack([
+				text("Max conversation turns"),
+				text_input().placeholder("max turns").id(MAX_CONVERSATION_TURNS).svalue(&state.max_conversation_turns.to_string()),
+				text("Current conversation turns"),
+				text(&state.conversation_turns.to_string()),
 			]).border("1px solid black").padding(5),
 			tools_list_view(project), 
 			forbidden_files(project),
