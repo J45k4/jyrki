@@ -23,6 +23,7 @@ pub const NEW_FORBIDDEN_FILE_BUTTON: u32 = 12;
 pub const DELETE_FORBIDDEN_FILE_BUTTON: u32 = 13;
 pub const EXPAND_TOOL_CALL: u32 = 14;
 pub const MAX_CONVERSATION_TURNS: u32 = 15;
+pub const MAX_CONTEXT_SIZE: u32 = 16;
 
 fn todo_item_view(todo_item: &TodoItem) -> Item {
 	hstack([
@@ -268,6 +269,8 @@ fn project_view(project: &Project, state: &State) -> Item {
 				text_input().placeholder("max turns").id(MAX_CONVERSATION_TURNS).svalue(&state.max_conversation_turns.to_string()),
 				text("Current conversation turns"),
 				text(&state.conversation_turns.to_string()),
+				text("Max context size"),
+				text_input().svalue(&state.max_context_size.to_string()).id(MAX_CONTEXT_SIZE),
 			]).border("1px solid black").padding(5),
 			tools_list_view(project), 
 			forbidden_files(project),

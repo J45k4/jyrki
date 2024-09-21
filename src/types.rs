@@ -43,6 +43,7 @@ pub struct State {
 	pub new_forbidden_file_name: String,
 	pub max_conversation_turns: u32,
 	pub conversation_turns: u32,
+	pub max_context_size: u32,
 }
 
 #[derive(Debug, Deserialize)]

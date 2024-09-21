@@ -33,6 +33,7 @@ impl App {
 		let state = State {
 			projects,
 			max_conversation_turns: 5,
+			max_context_size: 20,
 			..Default::default()
 		};
 
@@ -68,6 +69,7 @@ impl App {
 	}
 
 	fn continue_conversation(&mut self) {
+		let max_context_size = self.state.max_context_size;
 		let project = match self.get_active_project() {
 			Some(project) => project,
 			None => return,
@@ -89,7 +91,13 @@ You can use tools provided to you to read and write files.";
 			let msg = LLMMessage::System(project.instructions.clone());
 			messages.push(msg);
 		}
-		messages.extend_from_slice(&project.history.get_context());
+		for _ in 0..max_context_size {
+			if let Some(item) = project.history.items.last() {
+				messages.push(item.content.clone());
+			} else {
+				break;
+			}
+		}
 		let req = GenRequest {
 			model: project.model.clone(),
 			messages,
@@ -204,6 +212,11 @@ You can use tools provided to you to read and write files.";
 				MAX_CONVERSATION_TURNS => {
 					if let Ok(t) = t.value.parse::<u32>() {
 						self.state.max_conversation_turns = t;
+					}
+				}
+				MAX_CONTEXT_SIZE => {
+					if let Ok(t) = t.value.parse::<u32>() {
+						self.state.max_context_size = t;
 					}
 				}
 				_ => {}
