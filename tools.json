@@ -203,5 +203,23 @@
 				"additionalProperties": false
 			}
 		}
+	},
+	{
+		"type": "function",
+		"function": {
+			"name": "execute_bash_cmd",
+			"description": "Execute bash command",
+			"parameters": {
+				"type": "object",
+				"required": ["cmd"],
+				"properties": {
+					"cmd": {
+						"type": "string",
+						"description": "Command you want to execute"
+					}
+				},
+				"additionalProperties": false
+			}
+		}
 	}
 ]

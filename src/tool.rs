@@ -13,7 +13,7 @@ use tokio::io::AsyncWriteExt;
 use crate::generated::ToolCallParameters;
 use crate::Project;
 
-pub async fn execute(project: &Project, tool: ToolCallParameters) -> anyhow::Result<String> {
+pub async fn execute(project: &Project, tool: &ToolCallParameters) -> anyhow::Result<String> {
 	let res = match tool {
 		ToolCallParameters::WriteFile(w) => {
 			let path = Path::new(&project.folder_path).join(&w.path);

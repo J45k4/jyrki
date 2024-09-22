@@ -12,6 +12,8 @@ pub struct ToolCall {
 	pub id: String,
 	#[serde(default)]
 	pub expanded: bool,
+	#[serde(default)]
+	pub waiting_permission: bool,
 	pub tool: ToolCallParameters
 }
 

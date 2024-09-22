@@ -1,3 +1,5 @@
+use std::default;
+
 use anyhow::bail;
 use reqwest::Client;
 use reqwest::StatusCode;
@@ -30,18 +32,11 @@ impl ChatCompletion {
 				content: first_choice.message.content.clone().unwrap_or_else(|| "".to_string()),
 				tool_calls: match &first_choice.message.tool_calls {
 					Some(tool_calls) => tool_calls.iter().filter_map(|tool_call| {
-						// match Tool::parse(&tool_call.function.name, &tool_call.function.arguments) {
-						// 	Ok(tool) => Some(llm::ToolCall {
-						// 		id: tool_call.id.clone(),
-						// 		tool,
-						// 	}),
-						// 	Err(_) => None
-						// }
-
 						Some(llm::ToolCall {
 							id: tool_call.id.clone(),
 							expanded: true,
 							tool: crate::generated::ToolCallParameters::parse(&tool_call.function.name, &tool_call.function.arguments).unwrap(),
+							waiting_permission: false,
 						})
 					}).collect(),
 					None => vec![],

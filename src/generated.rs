@@ -9,7 +9,8 @@ pub enum Tool {
 	AddMemory,
 	ForgetMemory,
 	ListFolderContent,
-	FindInFile
+	FindInFile,
+	ExecuteBashCmd
 }
 
 impl ToString for Tool {
@@ -24,6 +25,7 @@ impl ToString for Tool {
 			Tool::ForgetMemory => "Forget Memory".to_string(),
 			Tool::ListFolderContent => "List Folder Content".to_string(),
 			Tool::FindInFile => "Find In File".to_string(),
+			Tool::ExecuteBashCmd => "Execute Bash Cmd".to_string(),
 		}
 	}
 }
@@ -40,6 +42,7 @@ impl Tool {
 			Tool::ForgetMemory => "forget_memory",
 			Tool::ListFolderContent => "list_folder_content",
 			Tool::FindInFile => "find_in_file",
+			Tool::ExecuteBashCmd => "execute_bash_cmd",
 		}
 	}
 
@@ -54,6 +57,7 @@ impl Tool {
 			Tool::ForgetMemory => "You can forget memories with this tool to free up space",
 			Tool::ListFolderContent => "List folder content",
 			Tool::FindInFile => "Find content in file",
+			Tool::ExecuteBashCmd => "Execute bash command",
 		}
 	}
 
@@ -68,11 +72,12 @@ impl Tool {
 			Tool::ForgetMemory => serde_json::json!({"properties":{"name":{"description":"Name of the memory you want to forget","type":"string"}},"required":["name"],"type":"object"}),
 			Tool::ListFolderContent => serde_json::json!({"properties":{"path":{"description":"Path of the folder you want to list","type":"string"}},"required":["path"],"type":"object"}),
 			Tool::FindInFile => serde_json::json!({"properties":{"path":{"description":"Path of the file in which you want to search","type":"string"},"pattern":{"description":"Pattern you want to search","type":"string"}},"required":["path","pattern"],"type":"object"}),
+			Tool::ExecuteBashCmd => serde_json::json!({"properties":{"cmd":{"description":"Command you want to execute","type":"string"}},"required":["cmd"],"type":"object"}),
 		}
 	}
 }
 
-pub const TOOLS: [Tool; 9] = [
+pub const TOOLS: [Tool; 10] = [
 	Tool::ReadFile,
 	Tool::WriteFile,
 	Tool::RemoveFile,
@@ -82,6 +87,7 @@ pub const TOOLS: [Tool; 9] = [
 	Tool::ForgetMemory,
 	Tool::ListFolderContent,
 	Tool::FindInFile,
+	Tool::ExecuteBashCmd,
 ];
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReadFile {
@@ -134,6 +140,11 @@ pub struct FindInFile {
 	pub path: String,
 	pub pattern: String,
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ExecuteBashCmd {
+	pub cmd: String,
+}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ToolCallParameters {
 	ReadFile(ReadFile),
@@ -144,7 +155,8 @@ pub enum ToolCallParameters {
 	AddMemory(AddMemory),
 	ForgetMemory(ForgetMemory),
 	ListFolderContent(ListFolderContent),
-	FindInFile(FindInFile)
+	FindInFile(FindInFile),
+	ExecuteBashCmd(ExecuteBashCmd)
 }
 
 impl ToolCallParameters {
@@ -159,6 +171,7 @@ impl ToolCallParameters {
 			ToolCallParameters::ForgetMemory(_) => "forget_memory",
 			ToolCallParameters::ListFolderContent(_) => "list_folder_content",
 			ToolCallParameters::FindInFile(_) => "find_in_file",
+			ToolCallParameters::ExecuteBashCmd(_) => "execute_bash_cmd",
 		}
 	}
 
@@ -173,6 +186,7 @@ impl ToolCallParameters {
 			ToolCallParameters::ForgetMemory(args) => serde_json::to_string(args).unwrap(),
 			ToolCallParameters::ListFolderContent(args) => serde_json::to_string(args).unwrap(),
 			ToolCallParameters::FindInFile(args) => serde_json::to_string(args).unwrap(),
+			ToolCallParameters::ExecuteBashCmd(args) => serde_json::to_string(args).unwrap(),
 		}
 	}
 
@@ -187,6 +201,7 @@ impl ToolCallParameters {
 			"forget_memory" => Ok(ToolCallParameters::ForgetMemory(serde_json::from_str(args)?)),
 			"list_folder_content" => Ok(ToolCallParameters::ListFolderContent(serde_json::from_str(args)?)),
 			"find_in_file" => Ok(ToolCallParameters::FindInFile(serde_json::from_str(args)?)),
+			"execute_bash_cmd" => Ok(ToolCallParameters::ExecuteBashCmd(serde_json::from_str(args)?)),
 			_ => anyhow::bail!("Unknown tool: {}", name),
 		}
 	}

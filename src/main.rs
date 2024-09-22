@@ -1,4 +1,5 @@
 use env::load_envs;
+use generated::ToolCallParameters;
 use generated::TOOLS;
 use llm::*;
 use types::*;
@@ -241,36 +242,47 @@ You can use tools provided to you to read and write files.";
 
 	async fn handle_result(&mut self, result: GenResult) {
 		match result {
-			GenResult::Response(res) => {
+			GenResult::Response(mut res) => {
 				log::info!("Response: {:?}", res);
 				if let Some(project) = self.get_active_project() {
+					let should_continue = res.msg.tool_calls.len() > 0;
+	
+					for tool_call in res.msg.tool_calls.iter_mut() {
+						let should_exec = match &tool_call.tool {
+							ToolCallParameters::ExecuteBashCmd(args) => {
+								
+								true
+							},
+							_ => false
+						};
+						if should_exec {
+							match tool::execute(&project, &tool_call.tool).await {
+								Ok(res) => {
+									log::info!("tool call result: {:?}", res);
+									project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
+										id: tool_call.id.clone(), 
+										content: res
+									}))
+								}
+								Err(e) => {
+									log::info!("tool call error: {:?}", e);
+									project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
+										id: tool_call.id.clone(), 
+										content: e.to_string()
+									}))
+								}
+							}
+						} else {
+							tool_call.waiting_permission = true;
+						}
+					}
+
 					project.history.add_message(LLMMessage::Assistant(res.msg.clone()));
 					project.input_token_count += res.prompt_tokens;
 					project.output_token_count += res.completion_tokens;
 					project.input_token_cost += res.promt_cost;
 					project.output_token_cost += res.completion_cost;
 					project.modified = true;
-
-					let should_continue = res.msg.tool_calls.len() > 0;
-	
-					for tool_call in res.msg.tool_calls {
-						match tool::execute(&project, tool_call.tool).await {
-							Ok(res) => {
-								log::info!("tool call result: {:?}", res);
-								project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
-									id: tool_call.id, 
-									content: res
-								}))
-							}
-							Err(e) => {
-								log::info!("tool call error: {:?}", e);
-								project.history.add_message(LLMMessage::ToolResponse(ToolResponse { 
-									id: tool_call.id, 
-									content: e.to_string()
-								}))
-							}
-						}
-					}
 
 					if should_continue {
 						if self.state.conversation_turns < self.state.max_conversation_turns {

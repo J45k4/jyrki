@@ -140,21 +140,19 @@ fn tool_call_view(tool_call: &ToolCall) -> Item {
 					hstack([
 						text("E").cursor("pointer").id(EXPAND_TOOL_CALL),
 						text("WriteFile"),
+						hstack([
+							if tool_call.waiting_permission {
+								text("waiting for permission").border("1px solid orange").padding(5)
+							} else {
+								text("executed").border("1px solid green").padding(5)
+							}
+						])
 					]).spacing(5),
 					vstack([
 						text(&format!("path: {}", w.path)),
 						text(&format!("line number: {}", w.linenumber)),
 						multile_text(&w.content),
 					])
-					// if tool_call.expanded {
-					// 	vstack([
-					// 		text(&format!("path: {}", w.path)),
-					// 		text(&format!("line number: {}", w.linenumber)),
-					// 		multile_text(&w.content),
-					// 	])
-					// } else {
-					// 	vstack([])
-					// }
 				]).border("1px solid black").padding(5)
 			},
 			ToolCallParameters::ReadFile(r) => {
